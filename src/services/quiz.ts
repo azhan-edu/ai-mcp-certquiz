@@ -13,6 +13,8 @@ export interface AnswerResult {
 export interface QuizService {
   getTopic(id: number): Topic;
   listTopics(): Topic[];
+  /** Ids of all questions, ascending; used only to list resources. */
+  listQuestionIds(): number[];
   getQuestion(id: number): Question;
   /** A random question, optionally from one topic. Unknown topic or no questions throw `NotFoundError`. */
   getRandomQuestion(topicId?: number): Question;
@@ -50,6 +52,10 @@ export function createQuizService(repo: Repository): QuizService {
 
     listTopics() {
       return repo.listTopics();
+    },
+
+    listQuestionIds() {
+      return repo.listQuestionIds();
     },
 
     getQuestion: requireQuestion,

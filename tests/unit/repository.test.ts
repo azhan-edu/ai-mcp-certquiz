@@ -372,6 +372,25 @@ describe("createRepository", () => {
     });
   });
 
+  describe("listQuestionIds", () => {
+    it("returns all question ids in ascending order, ids only", () => {
+      const ids = repo.listQuestionIds();
+      expect(ids.length).toBeGreaterThan(0);
+      expect(ids).toEqual([...ids].sort((a, b) => a - b));
+      for (const id of ids) expect(repo.getQuestion(id)?.id).toBe(id);
+    });
+
+    it("returns [] on an empty database", () => {
+      const empty = new DatabaseSync(":memory:");
+      try {
+        applySchema(empty);
+        expect(createRepository(empty).listQuestionIds()).toEqual([]);
+      } finally {
+        empty.close();
+      }
+    });
+  });
+
   describe("listTopics", () => {
     it("returns topics ordered by id, including one without questions", () => {
       const fresh = new DatabaseSync(":memory:");

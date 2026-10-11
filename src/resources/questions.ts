@@ -5,7 +5,15 @@ import { parseId, readJson } from "./shared.js";
 export function registerQuestionResource(server: McpServer, service: QuizService): void {
   server.registerResource(
     "question",
-    new ResourceTemplate("quiz://questions/{id}", { list: undefined }),
+    new ResourceTemplate("quiz://questions/{id}", {
+      list: () => ({
+        resources: service.listQuestionIds().map((id) => ({
+          uri: `quiz://questions/${id}`,
+          name: `Question ${id}`,
+          mimeType: "application/json",
+        })),
+      }),
+    }),
     {
       title: "Quiz question",
       description:

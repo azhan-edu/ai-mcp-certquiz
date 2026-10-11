@@ -69,6 +69,20 @@ describe("quiz resources", () => {
     ]);
   });
 
+  it("lists concrete resources so clients can autocomplete them", async () => {
+    const { resources } = await client.listResources();
+    const alpha = idOf("SELECT id FROM topics WHERE name = ?", "Alpha");
+    const uris = resources.map((r) => r.uri);
+    expect(uris).toContain(`quiz://topics/${alpha}`);
+    expect(uris).toContain(`quiz://questions/${q1()}`);
+    expect(uris).toContain(`quiz://questions/${q2()}`);
+    expect(uris).toContain(`quiz://questions/${q1()}/short-notes`);
+    expect(resources.find((r) => r.uri === `quiz://topics/${alpha}`)?.name).toBe("Alpha");
+    for (const resource of resources) {
+      expect((await read(resource.uri)).parsed).toBeDefined();
+    }
+  });
+
   it("reads a topic", async () => {
     const id = idOf("SELECT id FROM topics WHERE name = ?", "Beta");
     expect((await read(`quiz://topics/${id}`)).parsed).toEqual({ id, name: "Beta" });
@@ -169,6 +183,7 @@ describe("quiz resources", () => {
     const failing: QuizService = {
       getTopic: boom,
       listTopics: boom,
+      listQuestionIds: boom,
       getQuestion: boom,
       getRandomQuestion: boom,
       checkAnswer: boom,
@@ -213,6 +228,12 @@ describe("quiz resources", () => {
         const { text } = await read(uri);
         expect(text).not.toMatch(LEAK);
       }
+    });
+
+    it("listed resources (uri, name, description) contain no correctness data", async () => {
+      const { resources } = await client.listResources();
+      expect(resources.length).toBeGreaterThan(0);
+      expect(JSON.stringify(resources)).not.toMatch(LEAK);
     });
 
     it("question option keys are exactly id and label, question keys id, text, options", async () => {

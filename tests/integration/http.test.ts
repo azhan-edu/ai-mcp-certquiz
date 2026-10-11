@@ -242,6 +242,7 @@ describe("HTTP layer", () => {
       await startApp({
         getTopic: boom,
         listTopics: boom,
+        listQuestionIds: boom,
         getQuestion: boom,
         getRandomQuestion: boom,
         checkAnswer: boom,

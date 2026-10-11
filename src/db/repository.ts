@@ -40,6 +40,8 @@ export interface Repository {
   /** The stored explanation of a question; undefined when the question does not exist. */
   getExplanation(questionId: number): string | undefined;
   listTopics(): Topic[];
+  /** Ids of all questions in ascending order; ids only, no question data. */
+  listQuestionIds(): number[];
 }
 
 function num(value: unknown): number {
@@ -76,6 +78,7 @@ export function createRepository(db: DatabaseSync): Repository {
   );
   const explanationById = db.prepare("SELECT explanation FROM questions WHERE id = ?");
   const allTopics = db.prepare("SELECT id, name FROM topics ORDER BY id");
+  const allQuestionIds = db.prepare("SELECT id FROM questions ORDER BY id");
 
   return {
     getRandomQuestionId(topicId) {
@@ -96,6 +99,10 @@ export function createRepository(db: DatabaseSync): Repository {
 
     listTopics() {
       return allTopics.all().map((row) => ({ id: num(row.id), name: str(row.name) }));
+    },
+
+    listQuestionIds() {
+      return allQuestionIds.all().map((row) => num(row.id));
     },
 
     getTopic(id) {

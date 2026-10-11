@@ -5,7 +5,15 @@ import { parseId, readJson } from "./shared.js";
 export function registerShortNotesResource(server: McpServer, service: QuizService): void {
   server.registerResource(
     "question-short-notes",
-    new ResourceTemplate("quiz://questions/{id}/short-notes", { list: undefined }),
+    new ResourceTemplate("quiz://questions/{id}/short-notes", {
+      list: () => ({
+        resources: service.listQuestionIds().map((id) => ({
+          uri: `quiz://questions/${id}/short-notes`,
+          name: `Short notes: question ${id}`,
+          mimeType: "application/json",
+        })),
+      }),
+    }),
     {
       title: "Question short notes",
       description:

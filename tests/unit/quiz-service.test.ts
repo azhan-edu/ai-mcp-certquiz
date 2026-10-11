@@ -118,6 +118,15 @@ describe("createQuizService", () => {
     target.prepare("INSERT INTO topics (name) VALUES (?)").run("Gamma");
   };
 
+  describe("listQuestionIds", () => {
+    it("returns ids of all questions in ascending order", () => {
+      const ids = service.listQuestionIds();
+      expect(ids.length).toBeGreaterThan(0);
+      expect(ids).toEqual([...ids].sort((a, b) => a - b));
+      for (const id of ids) expect(service.getQuestion(id).id).toBe(id);
+    });
+  });
+
   describe("listTopics", () => {
     it("returns topics ordered by id", () => {
       const topics = service.listTopics();
@@ -261,6 +270,7 @@ describe("createQuizService", () => {
     const stubRepo = (overrides: Partial<Repository>): Repository => ({
       getTopic: () => undefined,
       listTopics: () => [],
+      listQuestionIds: () => [],
       getQuestion: () => ({ id: 1, text: "TEST q?", options: [{ id: 10, label: "TEST a" }] }),
       getRandomQuestionId: () => undefined,
       getCorrectOptionId: () => undefined,

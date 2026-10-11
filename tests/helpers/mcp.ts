@@ -106,6 +106,7 @@ export function createMcpHarness(): McpHarness {
       const failing: QuizService = {
         getTopic: boom,
         listTopics: boom,
+        listQuestionIds: boom,
         getQuestion: boom,
         getRandomQuestion: boom,
         checkAnswer: boom,
