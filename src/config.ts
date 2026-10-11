@@ -4,7 +4,7 @@ import { ConfigError } from "./lib/errors.js";
 const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   MCP_AUTH_TOKEN: z.string({ error: "is required" }).trim().min(1, "must not be empty"),
-  DB_PATH: z.string().trim().min(1).default("data/certsafary.db"),
+  DB_PATH: z.string().trim().min(1).default("data/certquiz.db"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 });
 

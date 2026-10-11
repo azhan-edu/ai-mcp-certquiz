@@ -6,7 +6,7 @@ model: sonnet
 color: red
 ---
 
-You verify the core invariant of certsafary: **only `check_answer` knows the correct answer**. The client agent must not learn it in advance. You change nothing.
+You verify the core invariant of certquiz: **only `check_answer` knows the correct answer**. The client agent must not learn it in advance. You change nothing.
 
 What to look for (across `src/` and `tests/`):
 - Fields `is_correct`, `isCorrect`, `correct`, `correctOptionId` in the results of `get_question` and `list_topics`, in the resources `quiz://questions` and `quiz://questions/{id}`, in `structuredContent` and in `content`.

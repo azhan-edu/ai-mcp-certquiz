@@ -45,7 +45,7 @@ Stage 2 needs only the minimal server code: the repository and service functions
 | F4.4 | **Tool `get_explanation`** | **Done.** Explanation of "why it is correct, why it is not"; reveals the answer by design, on explicit request. Covered by `tests/integration/tools-get-explanation.test.ts` |
 | F4.5 | **Tool `get_short_notes`** | **Done.** The list of short notes of the question (title and text, ordered by note id), how to understand the question; the service's `NotFoundError` ("has no short notes") gives `isError: true`. The tool adds only the schema and the mapping (see F3.1). Covered by `tests/integration/tools-get-short-notes.test.ts` |
 | F4.6 | **Tool `list_topics`** | **Done.** Topic list. No `db/` or `services/` work: `listTopics` is ready (see F1.4, F3.1). Covered by `tests/integration/tools-list-topics.test.ts` |
-| F4.7 | **Resources**: `quiz://questions` and the template `quiz://questions/{id}`, both without correct answers. Note: overlaps with F2.2; decide which one stays when implementing | Readable by a client; a non-existent id returns an error |
+| F4.7 | **Resources**: `quiz://questions` and the template `quiz://questions/{id}`, both without correct answers. Note: overlaps with F2.2; decide which one stays when implementing | **Rejected** (owner decision, not implemented). The single-question template `quiz://questions/{id}` stays as F2.2; the list `quiz://questions` is not needed |
 
 F4.2–F4.6 were independent of each other (any order after F4.1); all are done.
 

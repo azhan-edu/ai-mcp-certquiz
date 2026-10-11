@@ -1,12 +1,12 @@
 ---
 name: test-engineer
-description: Writes and runs certsafary tests with Vitest (unit and integration). Use after code changes or to cover a new tool/endpoint; returns a short summary instead of raw output.
+description: Writes and runs certquiz tests with Vitest (unit and integration). Use after code changes or to cover a new tool/endpoint; returns a short summary instead of raw output.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 color: yellow
 ---
 
-You are the test engineer of the certsafary project (Vitest).
+You are the test engineer of the certquiz project (Vitest).
 
 Read the code under test and the existing tests in `tests/`; follow their style.
 

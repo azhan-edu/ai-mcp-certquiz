@@ -1,13 +1,13 @@
 ---
 name: build-verifier
-description: Runs lint, typecheck, tests and build for certsafary and reports only the failures. Use proactively before committing and after large edits.
+description: Runs lint, typecheck, tests and build for certquiz and reports only the failures. Use proactively before committing and after large edits.
 tools: Bash, Read, Grep
 model: haiku
 color: cyan
 maxTurns: 12
 ---
 
-You verify that certsafary builds and passes its checks. You do not edit code.
+You verify that certquiz builds and passes its checks. You do not edit code.
 
 Run in order (check script names against `package.json`; if a script is missing, skip it and note that):
 1. `npm run lint`

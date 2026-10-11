@@ -1,6 +1,6 @@
 ---
 name: get-question-explanation
-description: Maintainer tool for inspecting the certsafary SQLite database - shows the correct answer of one question by its id, followed by the stored explanation. Use when the maintainer asks for the explanation or the right answer of a question (e.g. "explanation for question 42", "покажи объяснение вопроса 42"). It reveals the answer, so it must not be used to answer or help with a quiz question.
+description: Maintainer tool for inspecting the certquiz SQLite database - shows the correct answer of one question by its id, followed by the stored explanation. Use when the maintainer asks for the explanation or the right answer of a question (e.g. "explanation for question 42", "покажи объяснение вопроса 42"). It reveals the answer, so it must not be used to answer or help with a quiz question.
 argument-hint: <question-id>
 disable-model-invocation: true
 ---
@@ -19,14 +19,14 @@ This is the only project skill that reads `options.is_correct`. That is a delibe
 
 ## Procedure
 
-1. Run (the id is passed as an argument, never interpolated into the code; the path comes from `DB_PATH`, default `data/certsafary.db`):
+1. Run (the id is passed as an argument, never interpolated into the code; the path comes from `DB_PATH`, default `data/certquiz.db`):
 
    ```bash
    node --env-file-if-exists=.env -e '
    const { DatabaseSync } = require("node:sqlite");
    const id = process.argv[1];
    if (!/^[1-9][0-9]*$/.test(id)) { console.error("question id must be a positive integer"); process.exit(2); }
-   const path = process.env.DB_PATH || "data/certsafary.db";
+   const path = process.env.DB_PATH || "data/certquiz.db";
    let db;
    try { db = new DatabaseSync(path, { readOnly: true }); } catch { console.error(`database not found or unreadable: ${path} (run npm run db:seed)`); process.exit(3); }
    const q = db.prepare("SELECT id, explanation FROM questions WHERE id = ?").get(Number(id));

@@ -1,4 +1,4 @@
-# certsafary
+# CertQuiz
 
 An educational (non-commercial) remote MCP server in TypeScript. It stores quiz questions by topic in a local SQLite database and gives a chat agent this flow:
 
@@ -50,7 +50,7 @@ Environment variables (read from `.env` via `node --env-file-if-exists` in the n
 |---|---|---|
 | `PORT` | HTTP server port | `3000` |
 | `MCP_AUTH_TOKEN` | Bearer token for access to `/mcp` (not needed for `db:seed`) | required for the server |
-| `DB_PATH` | path to the SQLite file | `data/certsafary.db` |
+| `DB_PATH` | path to the SQLite file | `data/certquiz.db` |
 | `LOG_LEVEL` | pino log level (`fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`) | `info` |
 
 With invalid configuration the server fails at startup with a clear error.
@@ -68,7 +68,7 @@ Example for a client with `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "certsafary": {
+    "certquiz": {
       "type": "http",
       "url": "http://localhost:3000/mcp",
       "headers": { "Authorization": "Bearer ${MCP_AUTH_TOKEN}" }
@@ -99,7 +99,7 @@ Only the `raw-data-to-json` skill reads the markdown files (`_shortNotes*.md`). 
 
 ### Importing data into the database
 
-1. Put the files in `raw-data/`. The DB file path is set by `DB_PATH` (default `data/certsafary.db`); the folder and the file are created automatically.
+1. Put the files in `raw-data/`. The DB file path is set by `DB_PATH` (default `data/certquiz.db`); the folder and the file are created automatically.
 2. Convert the markdown to JSON: `npx tsx .claude/skills/raw-data-to-json/convert.mts` (or the skill `/raw-data-to-json`). It writes `raw-data/json/` and prints the counts, the skipped questions and the number of warnings. Run it again after every edit of the markdown: `db:seed` reads only the JSON and does not see later changes to the markdown.
 3. First check what will be loaded (dry run):
 
@@ -142,7 +142,7 @@ How the import works:
 - Hand edits of the JSON: ids are local to the export. If you change them by hand, renumber them consistently in all files together (`questions.json`, `options.json`, `question_short_notes.json`, `question_numbers`, `counts`). The seed matches rows by their natural keys, never by JSON ids, and the database assigns its own ids. Prefer fixing the markdown and converting again.
 - Idempotent and add-only: a repeated run adds nothing, and existing rows are neither changed nor deleted. Missing question–note links are added also for questions that are already loaded; a link that the files no longer have is only reported. Everything runs in one transaction; on any error it is rolled back entirely.
 - The conversion step skips a question, and the report lists it, if it cannot be built from the source as is: no answer options, no answer letter, no text, an empty option label, a duplicate option label, a duplicated text and other cases (the reason is given in the report). Without an official explanation (`> Official:`) the question's explanation is the text of a note from its own `Заметки:` line; `Заметки: —` means no note, so such a question without official text is skipped. Missing content is never invented: to load such a question, fix the source file and run the conversion again.
-- A question is identified by the pair "topic + text". If you fix a typo in the text of an already loaded question, it is added as a new one and the old one stays; the report lists it under `in database but not in source`. To remove such rows, delete the DB file (the path from `DB_PATH`, default `data/certsafary.db`) and run `npm run db:seed` again: the DB is rebuilt from the JSON, so its ids change, and the server must be restarted afterwards. The JSON in `raw-data/json/` is used as it is, so run the conversion first if the markdown has changed. Table and index changes apply only when the DB is created: recreate an existing DB the same way (`db:seed` refreshes the triggers of an existing DB)..
+- A question is identified by the pair "topic + text". If you fix a typo in the text of an already loaded question, it is added as a new one and the old one stays; the report lists it under `in database but not in source`. To remove such rows, delete the DB file (the path from `DB_PATH`, default `data/certquiz.db`) and run `npm run db:seed` again: the DB is rebuilt from the JSON, so its ids change, and the server must be restarted afterwards. The JSON in `raw-data/json/` is used as it is, so run the conversion first if the markdown has changed. Table and index changes apply only when the DB is created: recreate an existing DB the same way (`db:seed` refreshes the triggers of an existing DB)..
 - A dry run against an existing DB writes no data and does not switch its journal mode to WAL.
 - The report contains only counters, note titles and question numbers, without the correct options.
 

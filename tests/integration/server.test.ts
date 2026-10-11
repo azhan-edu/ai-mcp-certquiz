@@ -39,7 +39,7 @@ describe("createServer", () => {
   });
 
   it("connects and identifies itself", () => {
-    expect(client.getServerVersion()?.name).toBe("certsafary");
+    expect(client.getServerVersion()?.name).toBe("certquiz");
   });
 
   it("lists exactly the five tools, all read-only", async () => {

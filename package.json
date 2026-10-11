@@ -1,5 +1,5 @@
 {
-  "name": "certsafary",
+  "name": "certquiz",
   "version": "0.1.0",
   "description": "Educational remote MCP server: quiz questions by topic in SQLite",
   "private": true,
@@ -8,7 +8,7 @@
     "node": ">=24"
   },
   "bin": {
-    "certsafary": "dist/index.js"
+    "certquiz": "dist/index.js"
   },
   "files": [
     "dist",

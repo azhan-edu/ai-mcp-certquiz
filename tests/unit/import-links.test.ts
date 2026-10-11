@@ -199,7 +199,7 @@ describe("database files", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "certsafary-dbfiles-"));
+    dir = mkdtempSync(join(tmpdir(), "certquiz-dbfiles-"));
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
