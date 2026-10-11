@@ -6,7 +6,7 @@ Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 
 ## Goals
 - **Purpose is learning, not knowledge control.** Short notes may hint at the answer and are readable at any time (tool and resource). This does not relax the invariant below.
-- Serve questions to a client agent through MCP tools and resources over Streamable HTTP with a Bearer token.
+- Serve questions to a client agent through MCP tools and resources over Streamable HTTP with a Bearer token. Prompts are ready-made instructions that tell the agent which tool to call; they carry no data.
 - **Core invariant:** only `check_answer` knows the correct option. A question, `list_topics` and the question resources never expose `is_correct` or an equivalent.
 - Stay small and simple: no ORM, migrations, Docker or OAuth at this stage.
 - GitHub Actions are partly in place (`.github/workflows/`); status and remaining jobs: @docs/plan.github-actions.md.
@@ -19,7 +19,7 @@ Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 - `node:sqlite`; server reads go through `src/db/repository.ts` (created: `getTopic`, `listTopics`, `getQuestion`, `getRandomQuestionId`, `getCorrectOptionId`, `getExplanation`, `getShortNotes`)
 - Biome (lint + format), Vitest (unit + integration)
 
-Layers: `tools/` and `resources/` → `services/` → `db/`. `db/` and `services/` know nothing about MCP or HTTP. Config only through `config.ts`. Rules per layer live in `.claude/rules/` and load automatically.
+Layers: `tools/`, `resources/` → `services/` → `db/`; `prompts/` are data-free (no dependency on `services/` or `db/`). `db/` and `services/` know nothing about MCP or HTTP. Config only through `config.ts`. Rules per layer live in `.claude/rules/` and load automatically.
 
 ## Definition of done
 `npm run lint`, `npm run typecheck` and `npm test` pass; new behavior has a test; the invariant test still passes. The `pre-commit` git hook (`scripts/pre-commit.mjs`) runs lint, typecheck and tests and blocks secrets, `raw-data/` and `data/*.db*`; don't bypass it with `--no-verify` unless the user asks.

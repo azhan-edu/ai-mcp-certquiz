@@ -42,6 +42,18 @@ describe("createServer", () => {
     expect(client.getServerVersion()?.name).toBe("certquiz");
   });
 
+  it("advertises the prompts capability and lists exactly the five prompts", async () => {
+    expect(client.getServerCapabilities()).toHaveProperty("prompts");
+    const { prompts } = await client.listPrompts();
+    expect(prompts.map((p) => p.name).sort()).toEqual([
+      "check_answer",
+      "get_question",
+      "get_question_explanation",
+      "get_question_notes",
+      "list_topics",
+    ]);
+  });
+
   it("lists exactly the five tools, all read-only", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([

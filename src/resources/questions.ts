@@ -1,6 +1,7 @@
 import { type McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { parseId } from "../lib/ids.js";
 import type { QuizService } from "../services/quiz.js";
-import { parseId, readJson } from "./shared.js";
+import { readJson } from "./shared.js";
 
 export function registerQuestionResource(server: McpServer, service: QuizService): void {
   server.registerResource(

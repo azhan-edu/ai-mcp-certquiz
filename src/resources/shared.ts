@@ -1,6 +1,5 @@
 import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
 import { NotFoundError } from "../lib/errors.js";
 import { createLogger } from "../lib/logger.js";
 
@@ -8,21 +7,6 @@ const logger = createLogger();
 
 /** MCP spec code for "resource not found". */
 const RESOURCE_NOT_FOUND = -32002;
-
-const ID_PATTERN = /^[1-9]\d*$/;
-const idSchema = z.number().int().positive().safe().describe("Positive integer id from the URI");
-
-/** Parses the `{id}` URI variable; a bad value becomes an InvalidParams error. */
-export function parseId(value: string | string[] | undefined, what: string): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = idSchema.safeParse(
-    raw !== undefined && ID_PATTERN.test(raw) ? Number(raw) : Number.NaN,
-  );
-  if (!parsed.success) {
-    throw new McpError(ErrorCode.InvalidParams, `Invalid ${what} id: expected a positive integer`);
-  }
-  return parsed.data;
-}
 
 /** Runs a service read and maps failures to clear resource errors without internals. */
 export function readJson(uri: URL, load: () => unknown): ReadResourceResult {

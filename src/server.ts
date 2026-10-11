@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerPrompts } from "./prompts/index.js";
 import { registerResources } from "./resources/index.js";
 import type { QuizService } from "./services/quiz.js";
 import { registerTools } from "./tools/index.js";
@@ -10,5 +11,6 @@ export function createServer(service: QuizService): McpServer {
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
   registerTools(server, service);
   registerResources(server, service);
+  registerPrompts(server);
   return server;
 }

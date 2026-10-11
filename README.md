@@ -4,7 +4,7 @@ An educational (non-commercial) remote MCP server in TypeScript. It stores quiz 
 
 random question → check answer → explanation (on request) → short note: how to understand the question (on request).
 
-> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`) and the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) are implemented and tested. The HTTP server (`src/http.ts`, `src/index.ts`) runs and `/mcp` requires a Bearer token (`src/auth.ts`, F5.2). The Origin/Host check (F5.3) is not implemented yet, so keep `HOST` on loopback. Detailed plan: [docs/plan.md](docs/plan.md). The "Features" and "Security" sections partly describe the target state (see the notes there).
+> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`), the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) and the five prompts (`prompts/`: `get_question`, `check_answer`, `get_question_explanation`, `get_question_notes`, `list_topics`) are implemented and tested. The HTTP server (`src/http.ts`, `src/index.ts`) runs and `/mcp` requires a Bearer token (`src/auth.ts`, F5.2). The Origin/Host check (F5.3) is not implemented yet, so keep `HOST` on loopback. Detailed plan: [docs/plan.md](docs/plan.md). The "Features" and "Security" sections partly describe the target state (see the notes there).
 
 ## Features
 
@@ -26,6 +26,18 @@ random question → check answer → explanation (on request) → short note: ho
 - `quiz://questions/{id}/short-notes` — short notes of a question.
 
 Question resources, like `get_question`, do not contain the correct answer: only `check_answer` knows it. Short notes may hint at the answer and can be read at any time: the goal is learning, not knowledge control.
+
+**Prompts**
+
+Prompts are ready-made instructions for the client agent. Each one returns a single user message that tells the agent which tool to call and to show the result verbatim. Prompts read no data and never know the answer; the data comes from the tools above. Argument values are strings (positive integer ids, e.g. `"12"`). How a client shows prompts (for example, as commands) is to be clarified for the client in use.
+
+| Prompt | Arguments | Tool the agent is asked to call |
+|---|---|---|
+| `get_question` | `topicId?` | `get_question` (random question, optionally from one topic) |
+| `check_answer` | `questionId`, `optionId` | `check_answer` |
+| `get_question_explanation` | `questionId` | `get_explanation` |
+| `get_question_notes` | `questionId` | `get_short_notes` |
+| `list_topics` | — | `list_topics` |
 
 ## Requirements
 
@@ -224,7 +236,7 @@ src/
   index.ts      HTTP server entry point (implemented: read-only DB, graceful shutdown)
   http.ts       Express: /health, stateless Streamable HTTP on /mcp (implemented; Origin/Host F5.3 planned)
   auth.ts       bearerAuth(token): Bearer check on /mcp, before body parsing (implemented, F5.2)
-  server.ts     createServer(service): McpServer with registerTools and registerResources (implemented)
+  server.ts     createServer(service): McpServer with registerTools, registerResources and registerPrompts (implemented)
   config.ts     env parsing (zod)
   db/           SQLite (node:sqlite): connection, schema.sql, seed-json (reads and validates JSON), import,
                 report, run-seed, seed (db:seed CLI). Knows nothing about the markdown.
@@ -237,7 +249,11 @@ src/
                 shared.ts (toolJson, toolError, toolInputError)
   resources/    MCP resources (implemented): registerResources(server, service) with quiz://topics/{id},
                 quiz://questions/{id}, quiz://questions/{id}/short-notes; shared.ts: id parsing and error mapping
-  lib/          errors.ts (AppError, ConfigError, NotFoundError), logger.ts (pino)
+  prompts/      MCP prompts (implemented): registerPrompts(server), no service and no DB (data-free); one file per prompt
+                (get-question.ts, check-answer.ts, get-question-explanation.ts, get-question-notes.ts, list-topics.ts);
+                shared.ts (userMessage, idArg)
+  lib/          errors.ts (AppError, ConfigError, NotFoundError), logger.ts (pino), ids.ts (parseId: positive integer ids
+                for resource variables and prompt arguments)
 raw-data/       source files with questions and notes (not committed)
   json/         JSON for db:seed, written by the conversion; contains the answer key (not committed)
 data/           SQLite file (not committed)

@@ -18,7 +18,7 @@
 src/
   index.ts            # запуск HTTP-сервера (bin-точка входа) (готово, F5.1)
   http.ts             # Express/Streamable HTTP, /health (готово, F5.1; Origin/Host F5.3 пока нет) [Устарело: bearer-auth F5.2 готов, см. auth.ts]
-  server.ts           # createServer(service): McpServer + регистрация tools/resources (готово, F4.1)
+  server.ts           # createServer(service): McpServer + регистрация tools/resources/prompts (готово, F4.1; prompts F4.8)
   config.ts           # zod-разбор env: HOST, PORT, MCP_AUTH_TOKEN, DB_PATH, LOG_LEVEL; loadDbPath() для db:seed
   db/
     connection.ts     # открытие DatabaseSync (node:sqlite), applySchema, PRAGMA foreign_keys/WAL
@@ -45,7 +45,16 @@ src/
     topics.ts         # quiz://topics/{id} (ResourceTemplate)
     questions.ts      # quiz://questions (список, пока не реализован, см. plan.features F4.7), quiz://questions/{id} (ResourceTemplate), без правильных ответов
     short-notes.ts    # quiz://questions/{id}/short-notes (ResourceTemplate)
+  prompts/
+    index.ts          # registerPrompts(server): без service и без БД, prompts не содержат данных (готово, F4.8)
+    shared.ts         # userMessage (одно user-сообщение), idArg (строковый аргумент-id)
+    get-question.ts   # get_question(topicId?) -> просит агента вызвать tool get_question
+    check-answer.ts   # check_answer(questionId, optionId) -> tool check_answer
+    get-question-explanation.ts  # get_question_explanation(questionId) -> tool get_explanation
+    get-question-notes.ts        # get_question_notes(questionId) -> tool get_short_notes
+    list-topics.ts    # list_topics() -> tool list_topics
   lib/errors.ts, logger.ts   # логи в stderr/pino
+  lib/ids.ts          # parseId: положительное целое id для URI-переменных и аргументов prompts (InvalidParams иначе)
 raw-data/            # исходные файлы вопросов и заметок (в .gitignore)
 tests/
   unit/               # quiz service на in-memory SQLite (':memory:')
@@ -118,6 +127,6 @@ tests/
 - Подключить к реальному чат-агенту и пройти сценарий голосом/текстом.
 
 ## Вне объёма (следующие этапы)
-CLAUDE.md с правилами кода/тестов, deployment, OAuth, дополнительные ресурсы и prompts. ~~CI~~ — сделано: GitHub Actions внедрены, оставшиеся задачи в [plan.github-actions.md](plan.github-actions.md).
+CLAUDE.md с правилами кода/тестов, deployment, OAuth, дополнительные ресурсы. ~~CI~~ — сделано: GitHub Actions внедрены, оставшиеся задачи в [plan.github-actions.md](plan.github-actions.md).
 
 Claude-файлы (CLAUDE.md, rules, skills, агенты, hooks) и размещение best practices — см. [plan.claude-files.md](plan.claude-files.md).

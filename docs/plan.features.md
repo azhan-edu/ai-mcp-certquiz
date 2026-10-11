@@ -46,6 +46,7 @@ Stage 2 needs only the minimal server code: the repository and service functions
 | F4.5 | **Tool `get_short_notes`** | **Done.** The list of short notes of the question (title and text, ordered by note id), how to understand the question; the service's `NotFoundError` ("has no short notes") gives `isError: true`. The tool adds only the schema and the mapping (see F3.1). Covered by `tests/integration/tools-get-short-notes.test.ts` |
 | F4.6 | **Tool `list_topics`** | **Done.** Topic list. No `db/` or `services/` work: `listTopics` is ready (see F1.4, F3.1). Covered by `tests/integration/tools-list-topics.test.ts` |
 | F4.7 | **Resources**: `quiz://questions` and the template `quiz://questions/{id}`, both without correct answers. Note: overlaps with F2.2; decide which one stays when implementing | **Rejected** (owner decision, not implemented). The single-question template `quiz://questions/{id}` stays as F2.2; the list `quiz://questions` is not needed |
+| F4.8 | **MCP prompts** (`prompts/`): `get_question` (optional `topicId`), `check_answer` (`questionId`, `optionId`), `get_question_explanation` (`questionId`), `get_question_notes` (`questionId`), `list_topics` | **Done.** Each prompt returns one user message that tells the client agent which tool to call (`get_question`, `check_answer`, `get_explanation`, `get_short_notes`, `list_topics`) and to show the result verbatim without revealing the answer. Prompts have no service or DB access (`registerPrompts(server)`), so they carry no data; id arguments are validated with `parseId` (`lib/ids.ts`), so a bad id gives InvalidParams. Covered by `tests/integration/prompts.test.ts` |
 
 F4.2–F4.6 were independent of each other (any order after F4.1); all are done.
 
@@ -65,7 +66,7 @@ F4.2–F4.6 were independent of each other (any order after F4.1); all are done.
 | F6.4 | **Manual check with a real chat agent** | The scenario is passed by text and by voice |
 
 ## Out of scope (next stages)
-CLAUDE.md with code rules, CI, deployment, OAuth 2.1, rate limiting, additional resources and prompts, user answer statistics (will require state storage).
+CLAUDE.md with code rules, CI, deployment, OAuth 2.1, rate limiting, additional resources, user answer statistics (will require state storage).
 
 ## Recommended order
 First build a **vertical slice**: F0.1 → F1.1–F1.4 → F3.1 → F4.1 → F4.2 → F4.3. This gives a minimally working quiz (question and check) inside the process, without the network. Tools F4.4–F4.6 are done as well; F5.1 and F5.2 (HTTP and Bearer authentication) are done too; the next step is Origin/Host (F5.3).

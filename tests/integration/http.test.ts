@@ -180,6 +180,16 @@ describe("HTTP layer", () => {
       expect(q.options).toHaveLength(3);
     });
 
+    it("prompts/list works over HTTP with the Bearer token and carries no answer key", async () => {
+      const res = await post(rpc(2, "prompts/list", {}));
+      expect(res.status).toBe(200);
+      const text = await res.text();
+      for (const name of ["get_question", "check_answer", "list_topics"]) {
+        expect(text).toContain(name);
+      }
+      expect(text).not.toMatch(LEAK);
+    });
+
     it("is stateless: no session header, independent consecutive requests", async () => {
       const first = await post(INIT);
       expect(first.status).toBe(200);
