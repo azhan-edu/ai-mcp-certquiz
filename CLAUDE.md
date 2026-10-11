@@ -15,7 +15,7 @@ Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 ## Tech stack
 - Node.js 24, TypeScript (strict, ESM, `.js` imports), npm
 - `@modelcontextprotocol/sdk` (Streamable HTTP, stateless), Express 5, zod 4, pino
-- `node:sqlite`; server reads go through `src/db/repository.ts` (created, partial: `getTopic`, `getQuestion`, `getShortNotes`)
+- `node:sqlite`; server reads go through `src/db/repository.ts` (created: `getTopic`, `listTopics`, `getQuestion`, `getRandomQuestionId`, `getCorrectOptionId`, `getExplanation`, `getShortNotes`)
 - Biome (lint + format), Vitest (unit + integration)
 
 Layers: `tools/` and `resources/` → `services/` → `db/`. `db/` and `services/` know nothing about MCP or HTTP. Config only through `config.ts`. Rules per layer live in `.claude/rules/` and load automatically.

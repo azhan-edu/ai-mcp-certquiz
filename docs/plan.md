@@ -28,12 +28,12 @@ src/
     report.ts         # текст отчёта импорта: счётчики и Qn, без правильных вариантов
     run-seed.ts       # seedDatabase(): чтение файлов, импорт, очистка созданного файла при ошибке
     seed.ts           # CLI npm run db:seed (--dry-run, --json-dir; was --raw-dir, design changed, see the note below)
-    repository.ts     # создан, пока минимум: getTopic, getQuestion (с вариантами), getShortNotes; запланированы random/topics/list (prepared statements)
+    repository.ts     # создан: getTopic, listTopics, getQuestion (с вариантами), getRandomQuestionId(topicId?), getCorrectOptionId (единственное серверное чтение is_correct, только для checkAnswer), getExplanation, getShortNotes (prepared statements)
   services/
-    quiz.ts           # createQuizService: сейчас getTopic, getQuestion, getShortNotes (NotFoundError из lib/errors.ts); запланированы getRandomQuestion, checkAnswer, getExplanation, getShortNote
+    quiz.ts           # createQuizService: getTopic, listTopics, getQuestion, getRandomQuestion(topicId?), checkAnswer, getExplanation, getShortNotes (ресурс, [] без заметок), getShortNote (tool, NotFoundError без заметок); NotFoundError из lib/errors.ts, для вопроса без правильного варианта AppError
   tools/
     index.ts          # registerTools(server)
-    get-random-question.ts   # input: { topic? }
+    get-random-question.ts   # input: { topicId? }
     check-answer.ts          # input: { questionId, optionId } -> { correct, correctOptionId }
     get-explanation.ts       # input: { questionId }
     get-short-note.ts        # input: { questionId }

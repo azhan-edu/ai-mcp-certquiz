@@ -166,7 +166,16 @@ describe("quiz resources", () => {
     const boom = (): never => {
       throw new Error("secret detail");
     };
-    const failing: QuizService = { getTopic: boom, getQuestion: boom, getShortNotes: boom };
+    const failing: QuizService = {
+      getTopic: boom,
+      listTopics: boom,
+      getQuestion: boom,
+      getRandomQuestion: boom,
+      checkAnswer: boom,
+      getExplanation: boom,
+      getShortNotes: boom,
+      getShortNote: boom,
+    };
 
     it.each(["quiz://topics/1", "quiz://questions/1", "quiz://questions/1/short-notes"])(
       "unexpected error on %s -> -32603 without internals",

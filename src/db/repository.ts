@@ -30,6 +30,16 @@ export interface Repository {
   getQuestion(id: number): Question | undefined;
   /** Does not check that the question exists; use `getQuestion` for that. */
   getShortNotes(questionId: number): ShortNote[];
+  /** A random question id, optionally within one topic; undefined when there is none. */
+  getRandomQuestionId(topicId?: number): number | undefined;
+  /**
+   * The only server read of `is_correct`; used only by `checkAnswer`. Never expose the result
+   * through a question DTO, tool or resource other than as the outcome of a check.
+   */
+  getCorrectOptionId(questionId: number): number | undefined;
+  /** The stored explanation of a question; undefined when the question does not exist. */
+  getExplanation(questionId: number): string | undefined;
+  listTopics(): Topic[];
 }
 
 function num(value: unknown): number {
@@ -56,8 +66,38 @@ export function createRepository(db: DatabaseSync): Repository {
      WHERE qn.question_id = ?
      ORDER BY n.id`,
   );
+  // ORDER BY RANDOM() is intentional: the questions table is small, so a full scan and sort per call is acceptable.
+  const randomQuestionId = db.prepare("SELECT id FROM questions ORDER BY RANDOM() LIMIT 1");
+  const randomQuestionIdInTopic = db.prepare(
+    "SELECT id FROM questions WHERE topic_id = ? ORDER BY RANDOM() LIMIT 1",
+  );
+  const correctOptionId = db.prepare(
+    "SELECT id FROM options WHERE question_id = ? AND is_correct = 1",
+  );
+  const explanationById = db.prepare("SELECT explanation FROM questions WHERE id = ?");
+  const allTopics = db.prepare("SELECT id, name FROM topics ORDER BY id");
 
   return {
+    getRandomQuestionId(topicId) {
+      const row =
+        topicId === undefined ? randomQuestionId.get() : randomQuestionIdInTopic.get(topicId);
+      return row ? num(row.id) : undefined;
+    },
+
+    getCorrectOptionId(questionId) {
+      const row = correctOptionId.get(questionId);
+      return row ? num(row.id) : undefined;
+    },
+
+    getExplanation(questionId) {
+      const row = explanationById.get(questionId);
+      return row ? str(row.explanation) : undefined;
+    },
+
+    listTopics() {
+      return allTopics.all().map((row) => ({ id: num(row.id), name: str(row.name) }));
+    },
+
     getTopic(id) {
       const row = topicById.get(id);
       return row ? { id: num(row.id), name: str(row.name) } : undefined;

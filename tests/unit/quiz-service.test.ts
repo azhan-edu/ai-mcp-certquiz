@@ -1,8 +1,9 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { applySchema } from "../../src/db/connection.js";
 import { importSeedData } from "../../src/db/import.js";
-import { createRepository } from "../../src/db/repository.js";
-import { NotFoundError } from "../../src/lib/errors.js";
+import { createRepository, type Repository } from "../../src/db/repository.js";
+import { AppError, NotFoundError } from "../../src/lib/errors.js";
 import { createQuizService, type QuizService } from "../../src/services/quiz.js";
 import { notesOrderFixture, richFixture, seedData } from "../helpers/seed-json.js";
 
@@ -96,5 +97,189 @@ describe("createQuizService", () => {
 
   it("getShortNotes throws NotFoundError for an unknown question", () => {
     expect(() => service.getShortNotes(999)).toThrow(NotFoundError);
+  });
+
+  const optionId = (label: string): number => idOf("SELECT id FROM options WHERE label = ?", label);
+  const topicId = (name: string): number => idOf("SELECT id FROM topics WHERE name = ?", name);
+
+  // Runs `fn` against a fresh in-memory DB; `prepare` fills it.
+  const withFreshDb = (prepare: (target: DatabaseSync) => void, fn: (s: QuizService) => void) => {
+    const fresh = new DatabaseSync(":memory:");
+    try {
+      fresh.exec("PRAGMA foreign_keys = ON");
+      prepare(fresh);
+      fn(createQuizService(createRepository(fresh)));
+    } finally {
+      fresh.close();
+    }
+  };
+  const withEmptyTopic = (target: DatabaseSync): void => {
+    importSeedData(target, seedData(richFixture()));
+    target.prepare("INSERT INTO topics (name) VALUES (?)").run("Gamma");
+  };
+
+  describe("listTopics", () => {
+    it("returns topics ordered by id", () => {
+      const topics = service.listTopics();
+      expect(topics.map((t) => t.name).sort()).toEqual(["Alpha", "Beta"]);
+      const ids = topics.map((t) => t.id);
+      expect(ids).toEqual([...ids].sort((a, b) => a - b));
+    });
+
+    it("includes a topic without questions", () => {
+      withFreshDb(withEmptyTopic, (s) => {
+        expect(s.listTopics().map((t) => t.name)).toContain("Gamma");
+      });
+    });
+  });
+
+  describe("getRandomQuestion", () => {
+    it("returns a known question", () => {
+      const known = [q1(), q2()];
+      for (let i = 0; i < 10; i++) {
+        expect(known).toContain(service.getRandomQuestion().id);
+      }
+    });
+
+    it("has no correctness keys, explanation or correctOptionId; option keys are id and label", () => {
+      for (let i = 0; i < 10; i++) {
+        const q = service.getRandomQuestion();
+        expect(JSON.stringify(q)).not.toMatch(/is_?correct|explanation|correctOptionId/i);
+        expect(q.options.length).toBeGreaterThan(0);
+        for (const option of q.options) {
+          expect(Object.keys(option).sort()).toEqual(["id", "label"]);
+        }
+      }
+    });
+
+    it("has the same shape as getQuestion for the same id", () => {
+      const q = service.getRandomQuestion();
+      expect(q).toEqual(service.getQuestion(q.id));
+    });
+
+    it("respects the topic filter", () => {
+      const beta = topicId("Beta");
+      const alpha = topicId("Alpha");
+      for (let i = 0; i < 10; i++) {
+        expect(service.getRandomQuestion(beta).id).toBe(q1());
+        expect(service.getRandomQuestion(alpha).id).toBe(q2());
+      }
+    });
+
+    it("throws NotFoundError for an unknown topic", () => {
+      expect(() => service.getRandomQuestion(999)).toThrow(NotFoundError);
+    });
+
+    it("throws NotFoundError for a topic without questions", () => {
+      withFreshDb(withEmptyTopic, (s) => {
+        const gamma = s.listTopics().find((t) => t.name === "Gamma")?.id;
+        expect(gamma).toBeDefined();
+        expect(() => s.getRandomQuestion(gamma)).toThrow(NotFoundError);
+      });
+    });
+
+    it("throws NotFoundError on an empty database", () => {
+      withFreshDb(applySchema, (s) => {
+        expect(() => s.getRandomQuestion()).toThrow(NotFoundError);
+      });
+    });
+  });
+
+  describe("checkAnswer", () => {
+    it("reports the correct option as correct", () => {
+      const correct = optionId("MARKER-1B");
+      expect(service.checkAnswer(q1(), correct)).toEqual({
+        correct: true,
+        correctOptionId: correct,
+      });
+    });
+
+    it("reports each wrong option as incorrect with the same correctOptionId", () => {
+      const correct = optionId("MARKER-1B");
+      for (const label of ["MARKER-1A", "MARKER-1C"]) {
+        expect(service.checkAnswer(q1(), optionId(label))).toEqual({
+          correct: false,
+          correctOptionId: correct,
+        });
+      }
+    });
+
+    it("does not treat the first or lowest option as the correct one", () => {
+      const options = service.getQuestion(q1()).options;
+      const lowest = Math.min(...options.map((o) => o.id));
+      expect(service.checkAnswer(q1(), lowest).correct).toBe(false);
+      expect(service.checkAnswer(q1(), lowest).correctOptionId).not.toBe(lowest);
+      const results = options.map((o) => service.checkAnswer(q1(), o.id).correct);
+      expect(results.filter(Boolean)).toHaveLength(1);
+    });
+
+    it("throws NotFoundError for an option of another question", () => {
+      expect(() => service.checkAnswer(q1(), optionId("MARKER-2A"))).toThrow(NotFoundError);
+    });
+
+    it("throws NotFoundError for an unknown option", () => {
+      expect(() => service.checkAnswer(q1(), 999)).toThrow(NotFoundError);
+    });
+
+    it("throws NotFoundError for an unknown question", () => {
+      expect(() => service.checkAnswer(999, optionId("MARKER-1A"))).toThrow(NotFoundError);
+    });
+  });
+
+  describe("getExplanation", () => {
+    it("returns the stored explanation text", () => {
+      expect(service.getExplanation(q1())).toBe("Explanation 1.");
+      expect(service.getExplanation(q2())).toBe("Explanation 2.");
+    });
+
+    it("throws NotFoundError for an unknown question", () => {
+      expect(() => service.getExplanation(999)).toThrow(NotFoundError);
+    });
+  });
+
+  describe("getShortNote", () => {
+    it("returns all notes of the question ordered by id", () => {
+      const notes = service.getShortNote(q1());
+      expect(notes).toHaveLength(2);
+      const ids = notes.map((n) => n.id);
+      expect(ids).toEqual([...ids].sort((a, b) => a - b));
+      expect(notes).toEqual(service.getShortNotes(q1()));
+    });
+
+    it("throws NotFoundError for a question without notes, while getShortNotes returns []", () => {
+      expect(() => service.getShortNote(q2())).toThrow(NotFoundError);
+      expect(service.getShortNotes(q2())).toEqual([]);
+    });
+
+    it("throws NotFoundError for an unknown question", () => {
+      expect(() => service.getShortNote(999)).toThrow(NotFoundError);
+    });
+  });
+
+  describe("data integrity", () => {
+    // Unreachable through a real DB (schema triggers), so a stub repository is used.
+    const stubRepo = (overrides: Partial<Repository>): Repository => ({
+      getTopic: () => undefined,
+      listTopics: () => [],
+      getQuestion: () => ({ id: 1, text: "TEST q?", options: [{ id: 10, label: "TEST a" }] }),
+      getRandomQuestionId: () => undefined,
+      getCorrectOptionId: () => undefined,
+      getExplanation: () => undefined,
+      getShortNotes: () => [],
+      ...overrides,
+    });
+
+    it("checkAnswer throws AppError, not NotFoundError, when the question has no correct option", () => {
+      const broken = createQuizService(stubRepo({}));
+      expect(() => broken.checkAnswer(1, 10)).toThrow(AppError);
+      expect(() => broken.checkAnswer(1, 10)).not.toThrow(NotFoundError);
+    });
+
+    it("getRandomQuestion names the topic when an existing topic has no questions", () => {
+      const noQuestions = createQuizService(
+        stubRepo({ getTopic: () => ({ id: 5, name: "TEST" }) }),
+      );
+      expect(() => noQuestions.getRandomQuestion(5)).toThrow("Topic 5 has no questions");
+    });
   });
 });

@@ -13,7 +13,7 @@ random question → check answer → explanation (on request) → short note: ho
 | Tool | Input | Result |
 |---|---|---|
 | `list_topics` | — | topic list |
-| `get_random_question` | `{ topic? }` | question text and answer options (without the correctness flag) |
+| `get_random_question` | `{ topicId? }` | question text and answer options (without the correctness flag) |
 | `check_answer` | `{ questionId, optionId }` | `{ correct, correctOptionId }` |
 | `get_explanation` | `{ questionId }` | explanation |
 | `get_short_note` | `{ questionId }` | short note: how to understand the question; an error for a question without a note |
@@ -198,9 +198,11 @@ src/
   config.ts     env parsing (zod)
   db/           SQLite (node:sqlite): connection, schema.sql, seed-json (reads and validates JSON), import,
                 report, run-seed, seed (db:seed CLI). Knows nothing about the markdown.
-                repository.ts: read-only queries for the server: getTopic, getQuestion, getShortNotes (more planned)
-  services/     quiz read logic: createQuizService(repo) with getTopic, getQuestion, getShortNotes;
-                the rest of the quiz logic (random question, check, explanation, short note) is planned
+                repository.ts: read-only queries for the server: getTopic, listTopics, getQuestion, getRandomQuestionId,
+                getCorrectOptionId (the only read of is_correct, used only by checkAnswer), getExplanation, getShortNotes
+  services/     quiz logic: createQuizService(repo) with getTopic, listTopics, getQuestion, getRandomQuestion(topicId?),
+                checkAnswer, getExplanation, getShortNotes, getShortNote (the service-level part of the tools is done;
+                the tools themselves are planned)
   tools/        MCP tools — thin adapters over services (planned)
   resources/    MCP resources (implemented): registerResources(server, service) with quiz://topics/{id},
                 quiz://questions/{id}, quiz://questions/{id}/short-notes; shared.ts: id parsing and error mapping
