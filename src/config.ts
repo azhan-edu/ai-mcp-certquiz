@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ConfigError } from "./lib/errors.js";
 
 const envSchema = z.object({
+  HOST: z.string().trim().min(1).default("127.0.0.1"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   MCP_AUTH_TOKEN: z.string({ error: "is required" }).trim().min(1, "must not be empty"),
   DB_PATH: z.string().trim().min(1).default("data/certquiz.db"),
@@ -9,6 +10,7 @@ const envSchema = z.object({
 });
 
 export interface Config {
+  host: string;
   port: number;
   authToken: string;
   dbPath: string;
@@ -26,6 +28,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   const e = result.data;
   return {
+    host: e.HOST,
     port: e.PORT,
     authToken: e.MCP_AUTH_TOKEN,
     dbPath: e.DB_PATH,

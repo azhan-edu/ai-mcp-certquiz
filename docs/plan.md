@@ -16,10 +16,10 @@
 ## Структура
 ```
 src/
-  index.ts            # запуск HTTP-сервера (bin-точка входа)
-  http.ts             # Express/Streamable HTTP, bearer-auth, /health
+  index.ts            # запуск HTTP-сервера (bin-точка входа) (готово, F5.1)
+  http.ts             # Express/Streamable HTTP, /health (готово, F5.1; bearer-auth F5.2 и Origin/Host F5.3 пока нет)
   server.ts           # createServer(service): McpServer + регистрация tools/resources (готово, F4.1)
-  config.ts           # zod-разбор env: PORT, MCP_AUTH_TOKEN, DB_PATH, LOG_LEVEL; loadDbPath() для db:seed
+  config.ts           # zod-разбор env: HOST, PORT, MCP_AUTH_TOKEN, DB_PATH, LOG_LEVEL; loadDbPath() для db:seed
   db/
     connection.ts     # открытие DatabaseSync (node:sqlite), applySchema, PRAGMA foreign_keys/WAL
     schema.sql        # topics, short_notes, questions, options, question_short_notes

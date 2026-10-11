@@ -52,7 +52,7 @@ F4.2–F4.6 were independent of each other (any order after F4.1); all are done.
 ## Stage 5. Remote access
 | # | Feature | Result / done criteria |
 |---|---|---|
-| F5.1 | **HTTP server**: Express 5 + Streamable HTTP, stateless, `/health`, entry point `index.ts` | MCP Inspector connects over HTTP |
+| F5.1 | **HTTP server**: Express 5 + Streamable HTTP, stateless, `/health`, entry point `index.ts` | **Done.** `GET /health` returns `{status:"ok"}`; `POST /mcp` is stateless with a 100kb JSON body limit; `GET`/`DELETE /mcp` give 405 with `Allow: POST`; errors are generic JSON-RPC errors without stack, path or SQL; the request log has method, path, status, durationMs and aborted only. `index.ts` opens the DB read-only, exits 1 with a hint to run `db:seed` when the DB is missing, shuts down gracefully on SIGINT/SIGTERM, and listens on `HOST` (default `127.0.0.1`). **No authentication yet** (F5.2, F5.3 still open), so keep `HOST` on loopback. Covered by `tests/integration/http.test.ts`. MCP Inspector connection is not covered by a test |
 | F5.2 | **Bearer authentication** (`timingSafeEqual`) | A request without a token or with a wrong one gets 401 |
 | F5.3 | **DNS rebinding protection**: `Origin` and `Host` checks | A foreign Origin gets 403 |
 

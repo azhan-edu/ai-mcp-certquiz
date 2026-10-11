@@ -4,7 +4,7 @@ An educational (non-commercial) remote MCP server in TypeScript. It stores quiz 
 
 random question → check answer → explanation (on request) → short note: how to understand the question (on request).
 
-> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`) and the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) are implemented and tested over an in-memory transport. The HTTP server is not implemented yet (there is no `src/index.ts` and `src/http.ts`), so `npm run dev`, `npm run start` and connecting an agent do not work yet. Detailed plan: [docs/plan.md](docs/plan.md). The "Features", "Connecting an agent" and "Security" sections describe the target state.
+> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`) and the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) are implemented and tested. The HTTP server (`src/http.ts`, `src/index.ts`) runs, but **there is no authentication yet** (Bearer token, F5.2) and no Origin/Host check (F5.3): `/mcp` accepts any request, so keep `HOST` on loopback. Detailed plan: [docs/plan.md](docs/plan.md). The "Features" and "Security" sections partly describe the target state (see the notes there).
 
 ## Features
 
@@ -39,8 +39,12 @@ npm install
 cp .env.example .env      # set MCP_AUTH_TOKEN
 npx tsx .claude/skills/raw-data-to-json/convert.mts   # raw-data/*.md -> raw-data/json/ (or skill /raw-data-to-json)
 npm run db:seed           # create the DB and load questions from raw-data/json/ into SQLite
-npm run dev               # server at http://localhost:3000/mcp (not implemented yet)
+npm run dev               # server at http://127.0.0.1:3000/mcp (no auth yet, see Security)
 ```
+
+The server opens the DB read-only, so run `npm run db:seed` first: without the DB file it exits with an error and a hint.
+
+To check the server with MCP Inspector: run `npm run dev` in one terminal, then `npm run inspect` in another. In the Inspector choose the transport "Streamable HTTP" and the URL `http://127.0.0.1:3000/mcp`.
 
 ## Configuration
 
@@ -48,8 +52,9 @@ Environment variables (read from `.env` via `node --env-file-if-exists` in the n
 
 | Variable | Purpose | Default |
 |---|---|---|
+| `HOST` | address the HTTP server listens on; keep the loopback default, because `/mcp` has no authentication yet | `127.0.0.1` |
 | `PORT` | HTTP server port | `3000` |
-| `MCP_AUTH_TOKEN` | Bearer token for access to `/mcp` (not needed for `db:seed`) | required for the server |
+| `MCP_AUTH_TOKEN` | Bearer token for access to `/mcp` (not needed for `db:seed`); the server requires it at startup, but requests are not checked against it yet (F5.2) | required for the server |
 | `DB_PATH` | path to the SQLite file | `data/certquiz.db` |
 | `LOG_LEVEL` | pino log level (`fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`) | `info` |
 
@@ -57,11 +62,11 @@ With invalid configuration the server fails at startup with a clear error.
 
 ## Connecting an agent
 
-The server uses Streamable HTTP (stateless) and expects the header `Authorization: Bearer <MCP_AUTH_TOKEN>`.
+The server uses Streamable HTTP (stateless). The target is the header `Authorization: Bearer <MCP_AUTH_TOKEN>`, but it is **not checked yet** (F5.2): until it is, `/mcp` answers requests without a token too.
 
-- Endpoint: `http://localhost:3000/mcp`
+- Endpoint: `http://127.0.0.1:3000/mcp`
 - Liveness check: `GET /health`
-- Without a token `/mcp` responds with `401`
+- Target behaviour (F5.2, not implemented yet): without a token `/mcp` responds with `401`
 
 Example for a client with `.mcp.json`:
 
@@ -70,7 +75,7 @@ Example for a client with `.mcp.json`:
   "mcpServers": {
     "certquiz": {
       "type": "http",
-      "url": "http://localhost:3000/mcp",
+      "url": "http://127.0.0.1:3000/mcp",
       "headers": { "Authorization": "Bearer ${MCP_AUTH_TOKEN}" }
     }
   }
@@ -177,8 +182,8 @@ The "Итого" row counts each distinct note once over the whole selection, so
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | server with auto-restart (no `src/index.ts` yet) |
-| `npm run start` | run from `dist/` (after `npm run build`; no `src/index.ts` yet) |
+| `npm run dev` | server with auto-restart (`src/index.ts`) |
+| `npm run start` | run from `dist/` (after `npm run build`) |
 | `npm run build` | `tsc` build → `dist/` |
 | `npm test` | unit and integration tests (Vitest) |
 | `npm run lint` | Biome check |
@@ -216,8 +221,8 @@ Checks meant to be required for `main`: `verify` and `secret-scan`. Branch prote
 
 ```
 src/
-  index.ts      HTTP server entry point (planned)
-  http.ts       Streamable HTTP, Bearer auth, /health (planned)
+  index.ts      HTTP server entry point (implemented: read-only DB, graceful shutdown)
+  http.ts       Express: /health, stateless Streamable HTTP on /mcp (implemented; Bearer auth F5.2 and Origin/Host F5.3 planned)
   server.ts     createServer(service): McpServer with registerTools and registerResources (implemented)
   config.ts     env parsing (zod)
   db/           SQLite (node:sqlite): connection, schema.sql, seed-json (reads and validates JSON), import,
@@ -253,7 +258,11 @@ Node.js 24, TypeScript, `@modelcontextprotocol/sdk`, Express 5, `node:sqlite`, z
 
 ## Security
 
+Not implemented yet: the server does not check the Bearer token (F5.2) and does not check `Origin`/`Host` (F5.3). Until these are done, run it only on loopback (`HOST=127.0.0.1`, the default) and do not expose it to a network.
+
+Target state:
+
 - The token is compared with `crypto.timingSafeEqual`.
 - The `Origin`/`Host` headers are checked (DNS rebinding protection).
-- Authorization and tokens do not end up in logs.
+- Authorization and tokens do not end up in logs (the request log already has method, path, status, durationMs and aborted only).
 - Do not commit `.env`.

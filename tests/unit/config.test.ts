@@ -24,6 +24,7 @@ describe("loadConfig", () => {
 
   it("applies defaults", () => {
     expect(loadConfig({ MCP_AUTH_TOKEN: "t" })).toEqual({
+      host: "127.0.0.1",
       port: 3000,
       authToken: "t",
       dbPath: "data/certquiz.db",
@@ -35,6 +36,14 @@ describe("loadConfig", () => {
     const c = loadConfig({ MCP_AUTH_TOKEN: " tok ", PORT: "8080" });
     expect(c.authToken).toBe("tok");
     expect(c.port).toBe(8080);
+  });
+
+  it("trims HOST and accepts an override", () => {
+    expect(loadConfig({ MCP_AUTH_TOKEN: "t", HOST: " 0.0.0.0 " }).host).toBe("0.0.0.0");
+  });
+
+  it("rejects a blank HOST", () => {
+    expect(() => loadConfig({ MCP_AUTH_TOKEN: "t", HOST: "  " })).toThrow(/HOST/);
   });
 
   it.each(["abc", "0", "70000", "1.5"])("rejects invalid PORT %s", (port) => {
