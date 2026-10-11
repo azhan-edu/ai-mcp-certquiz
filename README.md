@@ -188,6 +188,16 @@ The "Итого" row counts each distinct note once over the whole selection, so
 | `npm run db:seed` | create the DB and load questions from `raw-data/json/` (`--dry-run`, `--json-dir`) |
 | `npm run inspect` | MCP Inspector |
 
+## Git hooks
+
+`npm install` installs a `pre-commit` hook (via `simple-git-hooks`, script `prepare`). It runs `scripts/pre-commit.mjs`:
+
+1. blocks forbidden files in the commit: `.env`, `CLAUDE.local.md`, `.claude/settings.local.json`, `raw-data/**`, `data/*.db*` (the DB holds the answer key);
+2. warns when `src/db/schema.sql` changes without seed, repository or test changes;
+3. runs `biome check --staged`, `npm run typecheck` and `npm test`.
+
+Skip it in an emergency with `git commit --no-verify`. Plan: [docs/plan.git-hooks.md](docs/plan.git-hooks.md).
+
 ## Architecture
 
 ```

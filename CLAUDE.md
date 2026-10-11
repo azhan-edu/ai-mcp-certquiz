@@ -21,7 +21,7 @@ Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 Layers: `tools/` and `resources/` → `services/` → `db/`. `db/` and `services/` know nothing about MCP or HTTP. Config only through `config.ts`. Rules per layer live in `.claude/rules/` and load automatically.
 
 ## Definition of done
-`npm run lint`, `npm run typecheck` and `npm test` pass; new behavior has a test; the invariant test still passes.
+`npm run lint`, `npm run typecheck` and `npm test` pass; new behavior has a test; the invariant test still passes. The `pre-commit` git hook (`scripts/pre-commit.mjs`) runs lint, typecheck and tests and blocks secrets, `raw-data/` and `data/*.db*`; don't bypass it with `--no-verify` unless the user asks.
 
 ## Skills
 Use skills for repeatable procedures instead of improvising:

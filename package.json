@@ -24,7 +24,8 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx --env-file-if-exists=.env src/db/seed.ts",
-    "inspect": "npx @modelcontextprotocol/inspector"
+    "inspect": "npx @modelcontextprotocol/inspector",
+    "prepare": "simple-git-hooks"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
@@ -37,9 +38,13 @@
     "@types/express": "^5.0.6",
     "@types/node": "^24.19.2",
     "@types/supertest": "^7.2.1",
+    "simple-git-hooks": "^2.14.0",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "node scripts/pre-commit.mjs"
   }
 }
