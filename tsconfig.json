@@ -11,7 +11,14 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "vitest.config.ts"]
+  "include": [
+    "src",
+    "tests",
+    "vitest.config.ts",
+    ".claude/skills/**/*.mts",
+    ".claude/skills/**/*.ts"
+  ]
 }

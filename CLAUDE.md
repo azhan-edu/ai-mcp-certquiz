@@ -1,6 +1,6 @@
 # certsafary
 
-Educational (non-commercial) remote MCP server in TypeScript. It stores quiz questions by topic in a local SQLite DB and lets a chat agent run: random question → check answer → explanation (on request) → shortcode (on request).
+Educational (non-commercial) remote MCP server in TypeScript. It stores quiz questions by topic in a local SQLite DB and lets a chat agent run: random question → check answer → explanation (on request) → short note (on request).
 
 Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 
@@ -8,12 +8,13 @@ Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 - Serve questions to a client agent through MCP tools and resources over Streamable HTTP with a Bearer token.
 - **Core invariant:** only `check_answer` knows the correct option. A question, `list_topics` and the question resources never expose `is_correct` or an equivalent.
 - Stay small and simple: no ORM, migrations, Docker, CI or OAuth at this stage.
-- Question content comes from the user (`data/questions.json`). Never invent real questions.
+- Question content comes from the user (`raw-data/` → `raw-data/json/` via `/raw-data-to-json` → `npm run db:seed`). Never invent real questions, options or explanations.
+- `raw-data/_shortNotes*.md` are read only by the skill `raw-data-to-json` (its parser lives in `.claude/skills/raw-data-to-json/`). The server, `db:seed` and the import use only `raw-data/json/`; `src/` never references the markdown files or `.claude/`.
 
 ## Tech stack
 - Node.js 24, TypeScript (strict, ESM, `.js` imports), npm
 - `@modelcontextprotocol/sdk` (Streamable HTTP, stateless), Express 5, zod 4, pino
-- `node:sqlite` behind `src/db/repository.ts`
+- `node:sqlite`; server reads go through `src/db/repository.ts` (planned, not created yet)
 - Biome (lint + format), Vitest (unit + integration)
 
 Layers: `tools/` and `resources/` → `services/` → `db/`. `db/` and `services/` know nothing about MCP or HTTP. Config only through `config.ts`. Rules per layer live in `.claude/rules/` and load automatically.
@@ -24,7 +25,12 @@ Layers: `tools/` and `resources/` → `services/` → `db/`. `db/` and `services
 ## Skills
 Use skills for repeatable procedures instead of improvising:
 - `new-mcp-tool` (planned): add a tool with registration and test.
-- `add-question` (planned): add a question to `data/questions.json`, validate and seed.
+- `import-raw-data` (`.claude/skills/`): create/update the DB: runs `raw-data-to-json`, then `npm run db:seed` (dry run first).
+- `raw-data-to-json` (`.claude/skills/`): convert `raw-data/` into JSON files that mirror the schema tables; writes only under `raw-data/` (the output holds the answer key), never touches the DB.
+- `get-question [id]` (command only) (`.claude/skills/`): show a question's text and answer options by DB id, or a random question when no id is given (read-only; no explanation, no answer). Maintainer tool only: never use it during a quiz session.
+- `get-question-explanation <id>` (command only) (`.claude/skills/`): show the correct answer and then the stored explanation of a question by DB id (read-only). The only skill that reads `is_correct`, a deliberate maintainer-only exception: never use it during a quiz session.
+- `get-question-notes <id>` (command only) (`.claude/skills/`): show all short notes of a question by DB id (from the DB, table `question_short_notes`). Maintainer tool only: never use it to help with a quiz question.
+- `get-stats [topic-id]` (command only) (`.claude/skills/`): show counts of questions and short notes per category (topic), plus a per-question note count when a topic id is given, from the DB (read-only; counts only, no options, no answer). Maintainer tool only: never use it during a quiz session.
 - `/code-review`, `/security-review`, `/simplify`: before a commit, after the HTTP layer, and after large edits.
 
 ## Agents

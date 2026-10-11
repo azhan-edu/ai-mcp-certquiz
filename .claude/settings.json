@@ -1,8 +1,5 @@
 {
   "permissions": {
-    "deny": [
-      "Bash(git commit:*)",
-      "Bash(git push:*)"
-    ]
+    "deny": ["Bash(git commit:*)", "Bash(git push:*)"]
   }
 }

@@ -1,56 +1,71 @@
-# Список фич для реализации
+# Feature list
 
-Черновик. Фичи упорядочены по зависимостям. Каждая фича небольшая и проверяется сама по себе, поэтому её можно делать отдельным коммитом.
+Draft. Features are ordered by dependencies. Each feature is small and verifiable on its own, so it can be done as a separate commit.
 
-## Этап 0. Фундамент
-| # | Фича | Результат / критерий готовности |
+## Stage 0. Foundation
+| # | Feature | Result / done criteria |
 |---|---|---|
-| F0.1 | **Каркас проекта**: `package.json`, tsconfig, Biome, Vitest, скрипты (`dev`, `build`, `test`, `lint`, `typecheck`, `db:seed`, `inspect`), `.gitignore`, `.env.example` | `npm run lint`, `typecheck` и `test` проходят на пустом проекте |
-| F0.2 | **Конфиг** (`config.ts`, `lib/errors.ts`, `lib/logger.ts`) | При пустом `MCP_AUTH_TOKEN` сервер падает с понятной ошибкой. Логи идут в stderr, токен маскируется. |
+| F0.1 | **Project skeleton**: `package.json`, tsconfig, Biome, Vitest, scripts (`dev`, `build`, `test`, `lint`, `typecheck`, `db:seed`, `inspect`), `.gitignore`, `.env.example` | `npm run lint`, `typecheck` and `test` pass on the empty project |
+| F0.2 | **Config** (`config.ts`, `lib/errors.ts`, `lib/logger.ts`) | With an empty `MCP_AUTH_TOKEN` the server fails with a clear error. Logs go to stderr, the token is masked. |
 
-## Этап 1. Данные
-| # | Фича | Результат / критерий готовности |
+## Stage 1. Data
+| # | Feature | Result / done criteria |
 |---|---|---|
-| F1.1 | **Схема БД** (`schema.sql`, `db/connection.ts`) | База создаётся, `foreign_keys` включены |
-| F1.2 | **Формат вопросов и валидация**: zod-схема seed, ровно один правильный вариант | Невалидный вопрос отклоняется с указанием поля |
-| F1.3 | **Seed-скрипт** `db:seed` + `data/questions.json` (3–5 демо-вопросов, потом ваши) | Команда идемпотентна: повторный запуск не плодит дубли |
-| F1.4 | **Репозиторий** (`db/repository.ts`): случайный вопрос (с фильтром по теме), по id, список тем, список вопросов | Unit-тесты на `:memory:` |
+| F1.1 | **DB schema** (`schema.sql`, `db/connection.ts`) | The database is created (tables `topics`, `short_notes`, `questions`, `options`, `question_short_notes` for the many-to-many link between questions and notes), `foreign_keys` is on; a topic with questions cannot be deleted (`ON DELETE RESTRICT`); the DB guarantees exactly one correct option for every question that has options (partial unique index and triggers: the correct option is inserted first and cannot be unmarked, moved or deleted while its question exists; INSERT OR REPLACE and UPDATE OR REPLACE on options and questions are refused by BEFORE triggers); a question with zero options is rejected by the seed validation and the import, not by the DB |
+| F1.2 | **Conversion `raw-data/*.md` → `raw-data/json/`** (skill `raw-data-to-json`, `convert.mts`, parser `.claude/skills/raw-data-to-json/parser.ts`): question-to-note link by title (then by title prefix and line number; an unresolved link is always reported, there is no fallback to the notes' `Вопросы:` lines) | A question that cannot be built from the source is skipped, with the reason in `_report.json` (`Qn` and reason only); the output is checked with the same loader as `db:seed` before anything is written to `raw-data/json/`, and `_report.json` is written last (an interrupted run leaves no report, which the seed rejects) |
+| F1.3 | **Seed script** `db:seed` (`--dry-run`, `--json-dir`): reads only `raw-data/json/`, validates it with zod (cross-file checks, exactly one correct option), then imports | The command is idempotent: a repeated run creates no duplicates; a missing JSON (including `_report.json`, which is required) stops it with `Run /raw-data-to-json first.` and creates no DB file; `_report.json` counts and `question_numbers` must match the files; the report prints `Qn` numbers; rows that are only in the DB are reported under `in database but not in source` and never deleted |
+| F1.4 | **Repository** (`db/repository.ts`): random question (with a topic filter), by id, topic list, question list | Unit tests on `:memory:` |
+| F1.5 | **Skill `raw-data-to-json`** (`/raw-data-to-json`, or `npx tsx .claude/skills/raw-data-to-json/convert.mts`): the conversion of F1.2 as a skill with its procedure and rules | Same criteria as F1.2. The skill writes only under `raw-data/`, never touches the DB and never prints the contents of `options.json` or the correct option |
+| F1.6 | **Skill `import-raw-data`** (`/import-raw-data`): runs F1.2 and then F1.3 (dry run first, then the real import) and a read-only check | Same criteria as F1.3. A repeated import reports 0 inserted. The check prints `without any option: 0`, `without exactly one correct: 0`, `fk violations: 0` and counts only |
+| F1.7 | **Command `/get-question [id]`** (skill `get-question`, `disable-model-invocation`): one question by DB id (`questions.id`, not the `Qn` number); without an id, a random question | Shows the topic, the text and the options (letters A, B, ...), read-only. No explanation and no answer; the queries never select `explanation` or `is_correct`. Without an argument it picks a random question and shows its id. A non-positive or non-integer id is refused, an unknown id gives an error and exit code 4 (so does an empty database) |
+| F1.8 | **Command `/get-question-explanation <id>`** (skill `get-question-explanation`): the correct answer, then the stored explanation | The only skill that reads `options.is_correct` (a maintainer-only exception, not used by the server). It reads only the one correct option row; if the question does not have exactly one correct option, it reports exit code 5 and guesses nothing |
+| F1.9 | **Command `/get-question-notes <id>`** (skill `get-question-notes`): all short notes of a question (table `question_short_notes`) | Shows every note (title and text) ordered by note id, read-only; a question without notes gives "no short notes". The `options` table is not read. Note text is shown verbatim |
+| F1.10 | **Command `/get-stats [topic-id]`** (skill `get-stats`): counts of questions and short notes | Without an argument: one row per category (category id, name, number of questions, number of **distinct** short notes) and an "Итого" row that counts distinct notes over the whole selection (not the sum of the rows). With a topic id (`topics.id`, not the `Qn` number): the summary row of that category and a details table (question id, first 100 characters of the question text with the category in the header, number of short notes). A non-integer argument is refused; an unknown id gives exit code 4. Read-only, counts only: never reads `options`, `is_correct`, `explanation` or note text. Maintainer tool, never used in a quiz session |
 
-## Этап 2. Логика
-| # | Фича | Результат / критерий готовности |
+## Stage 2. Resources
+| # | Feature | Result / done criteria |
 |---|---|---|
-| F2.1 | **Сервис квиза** (`services/quiz.ts`): `getRandomQuestion`, `checkAnswer`, `getExplanation`, `getShortcode` | Публичный DTO вопроса физически не содержит поля `is_correct`. Покрыто тестами. |
+| F2.1 | **Resource: topic description** (template by topic id, e.g. `certsafary://topics/{id}`) | Returns the description of one question category (`topics.id`). An unknown id gives a resource error. Reads through `services/` and `db/repository.ts`, no SQL in `resources/` |
+| F2.2 | **Resource: question** (template by question id, e.g. `certsafary://questions/{id}`) | Returns the text and options of one question, with no `is_correct` and no `explanation`. An unknown id gives an error. Covers the same ground as F4.7, see the note below |
+| F2.3 | **Resource: short notes of a question** (template by question id, e.g. `certsafary://questions/{id}/short-notes`) | Returns all short notes of the question (title and text, ordered by note id); a question without notes returns an empty list; an unknown question id gives an error |
 
-## Этап 3. MCP-интерфейс
-| # | Фича | Результат / критерий готовности |
+Depends on F1.4 (repository) and on the service functions of Stage 3 (F3.1). URI names are proposals. F2.2 overlaps with F4.7 (`certsafary://questions` and `certsafary://questions/{id}`); decide which one stays when implementing. Open question: where the category description (F2.1) comes from. Today `topics` has only `id` and `name`, so a description column or a derived text must be decided before F2.1. A schema change must update the seed, the repository and the tests together.
+
+## Stage 3. Logic
+| # | Feature | Result / done criteria |
 |---|---|---|
-| F3.1 | **Каркас сервера** (`server.ts`: `createServer()`, `registerTools`) | Клиент через `InMemoryTransport` подключается и видит список tools |
-| F3.2 | **Tool `get_random_question`** (необязательный `topic`) | Возвращает текст и варианты без правильного ответа |
-| F3.3 | **Tool `check_answer`** (`questionId`, `optionId`) | Возвращает `correct` и `correctOptionId`; неизвестный id даёт `isError: true` |
-| F3.4 | **Tool `get_explanation`** | Объяснение «почему верно, почему неверно» |
-| F3.5 | **Tool `get_shortcode`** | Короткая подсказка для запоминания |
-| F3.6 | **Tool `list_topics`** | Список тем |
-| F3.7 | **Ресурсы**: `certsafary://questions` и шаблон `certsafary://questions/{id}`, оба без правильных ответов | Читаются клиентом; для несуществующего id возвращается ошибка |
+| F3.1 | **Quiz service** (`services/quiz.ts`): `getRandomQuestion`, `checkAnswer`, `getExplanation`, `getShortNote` | The public question DTO physically has no `is_correct` field. Covered by tests. |
 
-F3.2–F3.6 независимы друг от друга и делаются в любом порядке после F3.1.
-
-## Этап 4. Remote-доступ
-| # | Фича | Результат / критерий готовности |
+## Stage 4. MCP interface
+| # | Feature | Result / done criteria |
 |---|---|---|
-| F4.1 | **HTTP-сервер**: Express 5 + Streamable HTTP, stateless, `/health`, точка входа `index.ts` | MCP Inspector подключается по HTTP |
-| F4.2 | **Bearer-аутентификация** (`timingSafeEqual`) | Запрос без токена или с неверным получает 401 |
-| F4.3 | **Защита от DNS rebinding**: проверка `Origin` и `Host` | Чужой Origin получает 403 |
+| F4.1 | **Server skeleton** (`server.ts`: `createServer()`, `registerTools`) | A client over `InMemoryTransport` connects and sees the tool list |
+| F4.2 | **Tool `get_random_question`** (optional `topic`) | Returns the text and options without the correct answer |
+| F4.3 | **Tool `check_answer`** (`questionId`, `optionId`) | Returns `correct` and `correctOptionId`; an unknown id gives `isError: true` |
+| F4.4 | **Tool `get_explanation`** | Explanation of "why it is correct, why it is not" |
+| F4.5 | **Tool `get_short_note`** | A short note on how to understand the question; a question without a note gives a clear error |
+| F4.6 | **Tool `list_topics`** | Topic list |
+| F4.7 | **Resources**: `certsafary://questions` and the template `certsafary://questions/{id}`, both without correct answers. Note: overlaps with F2.2; decide which one stays when implementing | Readable by a client; a non-existent id returns an error |
 
-## Этап 5. Качество и релиз
-| # | Фича | Результат / критерий готовности |
+F4.2–F4.6 are independent of each other and can be done in any order after F4.1.
+
+## Stage 5. Remote access
+| # | Feature | Result / done criteria |
 |---|---|---|
-| F5.1 | **Интеграционные тесты** протокола и HTTP | Полный сценарий random → check → explanation → shortcode зелёный |
-| F5.2 | **README**: запуск, переменные env, подключение к чат-агенту | По README можно поднять сервис с нуля |
-| F5.3 | **Подготовка npm-пакета**: `bin`, `files`, `engines`, `prepublishOnly`, проверка `npm pack` | В tarball только `dist`, `data`, `schema.sql` |
-| F5.4 | **Ручная проверка с реальным чат-агентом** | Сценарий пройден текстом и голосом |
+| F5.1 | **HTTP server**: Express 5 + Streamable HTTP, stateless, `/health`, entry point `index.ts` | MCP Inspector connects over HTTP |
+| F5.2 | **Bearer authentication** (`timingSafeEqual`) | A request without a token or with a wrong one gets 401 |
+| F5.3 | **DNS rebinding protection**: `Origin` and `Host` checks | A foreign Origin gets 403 |
 
-## Вне объёма (следующие этапы)
-CLAUDE.md с правилами кода, CI, deployment, OAuth 2.1, rate limiting, дополнительные ресурсы и prompts, статистика ответов пользователя (потребует хранения состояния).
+## Stage 6. Quality and release
+| # | Feature | Result / done criteria |
+|---|---|---|
+| F6.1 | **Integration tests** for the protocol and HTTP | The full scenario random → check → explanation → short note is green |
+| F6.2 | **README**: how to run, env variables, connecting to a chat agent | The service can be brought up from scratch using the README |
+| F6.3 | **npm package preparation**: `bin`, `files`, `engines`, `prepublishOnly`, `npm pack` check | The tarball contains `dist` and `schema.sql`; the DB file is not part of the package (`data` in `files` is debatable, see `plan.md`) |
+| F6.4 | **Manual check with a real chat agent** | The scenario is passed by text and by voice |
 
-## Рекомендуемый порядок
-Первым делаем **вертикальный срез**: F0.1 → F1.1–F1.4 → F2.1 → F3.1 → F3.2 → F3.3. Это даёт минимально работающий квиз (вопрос и проверка) внутри процесса, без сети. Затем добавляем остальные tools, потом HTTP и аутентификацию.
+## Out of scope (next stages)
+CLAUDE.md with code rules, CI, deployment, OAuth 2.1, rate limiting, additional resources and prompts, user answer statistics (will require state storage).
+
+## Recommended order
+First build a **vertical slice**: F0.1 → F1.1–F1.4 → F3.1 → F4.1 → F4.2 → F4.3. This gives a minimally working quiz (question and check) inside the process, without the network. Then add the remaining tools, then HTTP and authentication.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadConfig } from "../../src/config.js";
+import { loadConfig, loadDbPath } from "../../src/config.js";
 import { ConfigError } from "../../src/lib/errors.js";
 
 describe("loadConfig", () => {
@@ -43,5 +43,19 @@ describe("loadConfig", () => {
 
   it("rejects invalid LOG_LEVEL", () => {
     expect(() => loadConfig({ MCP_AUTH_TOKEN: "t", LOG_LEVEL: "loud" })).toThrow(/LOG_LEVEL/);
+  });
+});
+
+describe("loadDbPath", () => {
+  it("defaults without requiring MCP_AUTH_TOKEN", () => {
+    expect(loadDbPath({})).toBe("data/certsafary.db");
+  });
+
+  it("uses DB_PATH when set", () => {
+    expect(loadDbPath({ DB_PATH: " /tmp/x.db " })).toBe("/tmp/x.db");
+  });
+
+  it("rejects a blank DB_PATH with a ConfigError", () => {
+    expect(() => loadDbPath({ DB_PATH: "  " })).toThrow(ConfigError);
   });
 });

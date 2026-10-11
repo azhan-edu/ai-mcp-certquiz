@@ -3,7 +3,7 @@
 ## Область применения
 Структура ниже относится к **MCP-серверу certsafary** — репозиторию, где мы пишем сам сервер. Она помогает Claude Code разрабатывать сервер: форматировать код, гонять тесты, добавлять вопросы и tools, не допускать утечки правильного ответа.
 
-`.mcp.json` — единственное исключение: он подключает уже запущенный certsafary к Claude Code, чтобы проверить цепочку random → check → explanation → shortcode. Это тест сервера, а не клиентское приложение.
+`.mcp.json` — единственное исключение: он подключает уже запущенный certsafary к Claude Code, чтобы проверить цепочку random → check → explanation → short note. Это тест сервера, а не клиентское приложение.
 
 **Клиентское приложение/агент** (то, что будет пользоваться сервером) — отдельный набор файлов, см. раздел «Открытый вопрос».
 
@@ -11,25 +11,31 @@
 ```
 CLAUDE.md                      # коммитится; главный контекст проекта (до ~100 строк)
 CLAUDE.local.md                # в .gitignore; личные заметки/пути
-.mcp.json                      # коммитится; подключение certsafary к Claude Code
+.mcp.json                      # коммитится; подключение certsafary к Claude Code (пока не создан, после HTTP-слоя)
 .claude/
-  settings.json                # коммитится; permissions + hooks
+  settings.json                # коммитится; permissions (hooks — планируются)
   settings.local.json          # в .gitignore; личные разрешения
   rules/
     typescript.md              # strict, NodeNext, импорты с .js, noUncheckedIndexedAccess
     mcp-tools.md               # .describe() на полях, readOnlyHint, isError, tools — тонкие адаптеры
     testing.md                 # vitest, :memory: SQLite, InMemoryTransport, инвариант is_correct
-    security.md                # bearer + timingSafeEqual, Origin/Host, redact логов, не коммитить .env
+    http-security.md           # bearer + timingSafeEqual, Origin/Host, redact логов, не коммитить .env
+    database.md                # node:sqlite, schema.sql, импорт raw-data/, инвариант is_correct
   skills/
-    add-question/SKILL.md      # добавить вопрос в data/questions.json + валидация + db:seed
-    new-mcp-tool/SKILL.md      # шаблон нового tool: файл в src/tools, регистрация, тест
-  commands/
+    import-raw-data/SKILL.md   # создать/обновить БД: raw-data-to-json, затем db:seed (сначала --dry-run)
+    raw-data-to-json/SKILL.md  # конвертация raw-data/*.md в JSON (convert.mts + parser.ts; единственный код, читающий _shortNotes*.md), пишет только в raw-data/
+    get-question/SKILL.md      # показать текст вопроса и варианты по id или случайного вопроса без аргумента (только для сопровождающего, не для квиза)
+    get-question-explanation/SKILL.md # показать верный ответ и объяснение по id (единственный скилл, читающий is_correct; только для сопровождающего, не для квиза)
+    get-question-notes/SKILL.md # показать шорт-ноуты вопроса по id (только для сопровождающего, не для квиза)
+    get-stats/SKILL.md         # статистика БД: вопросы и шорт-ноуты по категориям; детали по вопросам только при указанном topic-id (только для сопровождающего, не для квиза)
+    new-mcp-tool/SKILL.md      # шаблон нового tool: файл в src/tools, регистрация, тест (планируется)
+  commands/                    # планируется
     verify.md                  # /verify: biome + tsc --noEmit + vitest
     inspect.md                 # /inspect: dev-сервер + MCP Inspector
   agents/                      # подробнее — в разделе «Агенты»
     mcp-developer.md           # tools и ресурсы, SDK, zod-схемы
     backend-developer.md       # HTTP-слой, config, services
-    db-engineer.md             # schema.sql, repository, seed
+    db-engineer.md             # schema.sql, db/* (seed-json, import, seed), repository.ts (планируется)
     test-engineer.md           # unit и integration на Vitest
     code-reviewer.md           # ревью diff (read-only)
     quiz-invariant-reviewer.md # ревью: не утекает ли is_correct (read-only)
@@ -38,13 +44,13 @@ CLAUDE.local.md                # в .gitignore; личные заметки/пу
     build-verifier.md          # lint + typecheck + test + build, только ошибки
     npm-release-checker.md     # готовность к публикации в npm
     docs-writer.md             # README, plan.md, CLAUDE.md в актуальном виде
-  hooks/
+  hooks/                       # планируется
     format-on-edit.sh          # biome format после Edit/Write по *.ts
     block-secrets.sh           # PreToolUse: запрет правок .env, токенов
 ```
 
 ## Содержимое ключевых файлов
-- **CLAUDE.md**: назначение проекта; стек (Node 24, TS, MCP SDK, node:sqlite, Express 5, vitest, biome); команды (`dev`, `build`, `test`, `db:seed`, `inspect`); слои (`services/` и `db/` не знают про MCP); ключевые решения из `docs/plan.md` (не отдавать правильный ответ, stateless HTTP); ссылка `@docs/plan.md`; запреты (не коммитить `.env`, не менять `schema.sql` без обновления seed).
+- **CLAUDE.md**: назначение проекта; стек (Node 24, TS, MCP SDK, node:sqlite, Express 5, vitest, biome); команды не дублируются, они в README; слои (`services/` и `db/` не знают про MCP); ключевые решения из `docs/plan.md` (не отдавать правильный ответ, stateless HTTP); ссылка `@docs/plan.md`; запреты (не коммитить `.env`, не менять `schema.sql` без обновления seed).
 - **.claude/settings.json**: `permissions.allow` — `npm run *`, `npx biome *`, `npx tsc --noEmit`, `npx vitest *`, `git status/diff/log`; `deny` — `Read(.env*)`, `Bash(rm -rf *)`; `hooks` — PostToolUse (Edit|Write → format-on-edit), PreToolUse (block-secrets).
 - **.mcp.json**: certsafary-сервер (url `http://localhost:PORT/mcp`, заголовок Bearer из `${MCP_AUTH_TOKEN}`); опционально `@modelcontextprotocol/inspector`.
 - **.gitignore** дополнить: `CLAUDE.local.md`, `.claude/settings.local.json`, `.env`.
@@ -65,7 +71,7 @@ CLAUDE.local.md                # в .gitignore; личные заметки/пу
 |---|---|---|---|
 | `mcp-developer` | Tools и ресурсы: `src/tools/`, `src/resources/`, `src/server.ts` | Read, Write, Edit, Bash, Grep, Glob | sonnet |
 | `backend-developer` | HTTP-слой, config, сервисы | Read, Write, Edit, Bash, Grep, Glob | sonnet |
-| `db-engineer` | `schema.sql`, `repository.ts`, `seed.ts`, валидация вопросов | Read, Write, Edit, Bash, Grep, Glob | sonnet |
+| `db-engineer` | `schema.sql`, `src/db/*` (парсер raw-data, импорт, `seed.ts`), `repository.ts` (планируется) | Read, Write, Edit, Bash, Grep, Glob | sonnet |
 | `test-engineer` | Unit и integration на Vitest, краткий итог вместо сырого вывода | Read, Write, Edit, Bash, Grep, Glob | sonnet |
 | `code-reviewer` | Ревью diff: корректность, типы, слои, стиль | Read, Grep, Glob, Bash (git, чтение) | opus |
 | `quiz-invariant-reviewer` | Утечка `is_correct` в вопросы, ресурсы, логи, ошибки | Read, Grep, Glob | sonnet |
@@ -88,7 +94,7 @@ CLAUDE.local.md                # в .gitignore; личные заметки/пу
    - с HTTP-слоем: `backend-developer`, `security-auditor`;
    - с первыми скриптами `package.json`: `build-verifier`, `db-reviewer`;
    - перед публикацией: `npm-release-checker`, `docs-writer`.
-4. После первого tool и первого теста: skills `new-mcp-tool` и `add-question`, `docs/conventions.md`, ссылки на эталонные файлы в rules.
+4. После первого tool и первого теста: skill `new-mcp-tool`, `docs/conventions.md`, ссылки на эталонные файлы в rules.
 5. После `npm init` и скриптов: hooks (format-on-edit, block-secrets), commands `/verify` и `/inspect`; после запуска HTTP — `.mcp.json`.
 
 ## Верификация
@@ -99,7 +105,7 @@ CLAUDE.local.md                # в .gitignore; личные заметки/пу
 
 ## Открытый вопрос: клиентское приложение
 Для приложения/агента, использующего сервер, нужен отдельный набор:
-- системный промпт со сценарием: вопрос → ответ → объяснение и shortcode только по запросу;
+- системный промпт со сценарием: вопрос → ответ → объяснение и short note только по запросу;
 - конфиг подключения к серверу: URL и Bearer-токен;
 - свой CLAUDE.md.
 

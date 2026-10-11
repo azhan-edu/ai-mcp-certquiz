@@ -1,15 +1,15 @@
 # Plan: certsafary MCP server (quiz service)
 
 ## Context
-Учебный (некоммерческий) проект: remote MCP-сервер на TypeScript, к которому подключается обычный чат-агент. Сервер хранит в локальной SQLite-базе вопросы по темам с вариантами ответов, и даёт пользователю: случайный вопрос → проверка ответа → (по запросу) объяснение → (по запросу) shortcode для запоминания. Позже добавятся ресурсы (список вопросов, вопрос по id). Репозиторий пустой (только README.md), Node v24.14, npm 11.
+Учебный (некоммерческий) проект: remote MCP-сервер на TypeScript, к которому подключается обычный чат-агент. Сервер хранит в локальной SQLite-базе вопросы по темам с вариантами ответов, и даёт пользователю: случайный вопрос → проверка ответа → (по запросу) объяснение → (по запросу) short note для запоминания. Позже добавятся ресурсы (список вопросов, вопрос по id). Репозиторий пустой (только README.md), Node v24.14, npm 11.
 
 Решения пользователя: `node:sqlite`, Streamable HTTP + Bearer-токен из env, npm, публикация как npm-пакет, свои вопросы пользователь даст позже (нужна схема + seed-скрипт, формат данных подстроим).
 
 ## Ключевые проектные решения
 - **Не отдавать правильный ответ вместе с вопросом.** `get_random_question` и ресурсы возвращают только текст и варианты; правильность знает только `check_answer`. Иначе агент «подсмотрит» ответ.
-- **Отдельные tools для каждого шага**: проверка, объяснение, shortcode — по запросу, как в требованиях.
-- **Допущение:** «короткая заметка для быстрой ориентации» и «shortcode» — одно и то же поле `shortcode`. Если это разные сущности, добавим колонку `note`.
-- **Допущение:** у вопроса ровно один правильный вариант (схема позволяет расширить до нескольких).
+- **Отдельные tools для каждого шага**: проверка, объяснение, short note — по запросу, как в требованиях.
+- **Решение:** «short note» — короткий текст о том, как смотреть на вопрос и понимать его, — отдельная таблица `short_notes(id, title UNIQUE, text)`. Одну заметку могут использовать несколько вопросов, и у вопроса может быть несколько заметок: связь «вопрос ↔ заметки» многие-ко-многим, таблица `question_short_notes(question_id, short_note_id)`, см. README, раздел «Данные». Заметка отдаётся только по явному запросу, так как может намекать на ответ.
+- **Допущение:** у вопроса ровно один правильный вариант. [Устарело: схема теперь не допускает несколько правильных вариантов (см. строку схемы ниже); поддержка нескольких потребует смены схемы и импорта.]
 - **Stateless HTTP**: сессии не нужны, сервер не хранит состояние пользователя, `createServer()` вызывается на каждый запрос.
 - Слой `services/` и `db/` не знает про MCP; tools — тонкие адаптеры.
 
@@ -19,32 +19,38 @@ src/
   index.ts            # запуск HTTP-сервера (bin-точка входа)
   http.ts             # Express/Streamable HTTP, bearer-auth, /health
   server.ts           # createServer(): McpServer + регистрация tools/resources
-  config.ts           # zod-разбор env: PORT, MCP_AUTH_TOKEN, DB_PATH
+  config.ts           # zod-разбор env: PORT, MCP_AUTH_TOKEN, DB_PATH, LOG_LEVEL; loadDbPath() для db:seed
   db/
-    connection.ts     # открытие DatabaseSync (node:sqlite), PRAGMA foreign_keys
-    schema.sql        # topics, questions, options
-    seed.ts           # data/questions.json -> SQLite (npm run db:seed)
-    repository.ts     # prepared statements: random/byId/topics/list
+    connection.ts     # открытие DatabaseSync (node:sqlite), applySchema, PRAGMA foreign_keys/WAL
+    schema.sql        # topics, short_notes, questions, options, question_short_notes
+    raw-data.ts       # [устарело: парсер перенесён в .claude/skills/raw-data-to-json/parser.ts, см. пометку ниже]
+    import.ts         # additive, идемпотентный импорт в одной транзакции (dry run откатывает)
+    report.ts         # текст отчёта импорта: счётчики и Qn, без правильных вариантов
+    run-seed.ts       # seedDatabase(): чтение файлов, импорт, очистка созданного файла при ошибке
+    seed.ts           # CLI npm run db:seed (--dry-run, --json-dir; was --raw-dir, design changed, see the note below)
+    repository.ts     # (не создан) prepared statements: random/byId/topics/list
   services/
-    quiz.ts           # getRandomQuestion, checkAnswer, getExplanation, getShortcode
+    quiz.ts           # getRandomQuestion, checkAnswer, getExplanation, getShortNote
   tools/
     index.ts          # registerTools(server)
     get-random-question.ts   # input: { topic? }
     check-answer.ts          # input: { questionId, optionId } -> { correct, correctOptionId }
     get-explanation.ts       # input: { questionId }
-    get-shortcode.ts         # input: { questionId }
+    get-short-note.ts        # input: { questionId }
     list-topics.ts
   resources/
     index.ts          # registerResources(server)
     questions.ts      # certsafary://questions (список), certsafary://questions/{id} (ResourceTemplate), без правильных ответов
   lib/errors.ts, logger.ts   # логи в stderr/pino
-data/questions.json   # вопросы пользователя
+raw-data/            # исходные файлы вопросов и заметок (в .gitignore)
 tests/
   unit/               # quiz service на in-memory SQLite (':memory:')
   integration/        # Client <-> server через InMemoryTransport; HTTP через supertest/fetch
 ```
 
-Схема БД: `topics(id, name)`, `questions(id, topic_id, text, shortcode, explanation)`, `options(id, question_id, label, is_correct, explanation)` — объяснение «почему правильно/неправильно» хранится на уровне варианта плюс общее на вопросе.
+> **Устарело (пометка, сам план не переписан):** `seed.ts` принимает `--json-dir` (по умолчанию `raw-data/json`), а не `--raw-dir`. `db:seed` читает только JSON из `raw-data/json/`; JSON пишет скилл `raw-data-to-json` (`convert.mts`) из markdown через парсер `.claude/skills/raw-data-to-json/parser.ts` (раньше `src/db/raw-data.ts`; перенесён, т.к. `_shortNotes*.md` читает только скилл). `db:seed` парсер не вызывает и markdown не читает; тесты парсера в `tests/skills/raw-data-to-json/`, серверные тесты строят данные из JSON-фикстур. Добавлен `seed-json.ts` (чтение и zod-валидация JSON). Актуальная структура: README, раздел «Architecture».
+
+Схема БД: `topics(id, name)`, `short_notes(id, title, text)`, `questions(id, topic_id, text, explanation)` (`topic_id` с `ON DELETE RESTRICT`: тему с вопросами удалить нельзя; индекс по `topic_id` даёт `UNIQUE (topic_id, text)`), `options(id, question_id, position, label, is_correct)` (`position` с `CHECK (position >= 1)`; ровно один правильный вариант у вопроса с вариантами гарантирует БД: частичный уникальный индекс `one_correct_per_question` и триггеры `options_correct_first`, `options_correct_update`, `options_no_move`, `options_correct_delete`), `question_short_notes(question_id, short_note_id)` (составной первичный ключ, `WITHOUT ROWID`, оба внешних ключа с `ON DELETE CASCADE`, индекс по `short_note_id`). Объяснение «почему правильно/неправильно» хранится одно на вопрос (`questions.explanation`), отдельного объяснения на варианте нет.
 
 ## Стек
 Версии проверены через `npm view` 10.10.2026; перед установкой закрепить в `package.json` и свериться с API (мажоры недавно менялись).
@@ -64,10 +70,11 @@ tests/
 - Проверка `Origin`/`Host` (защита от DNS rebinding, требование спецификации MCP); `/health`.
 
 **Данные**
-- `node:sqlite` (`DatabaseSync`), prepared statements, спрятан за `db/repository.ts` (API может меняться; замена на `better-sqlite3` затрагивает один файл).
-- Схема в `schema.sql` (`CREATE TABLE IF NOT EXISTS`), без ORM и миграций.
-- Seed: `data/questions.json` + скрипт `db:seed` (через `tsx`), валидация через `zod` (ровно один правильный вариант, нет пустых полей).
+- `node:sqlite` (`DatabaseSync`), prepared statements, спрятан за `db/repository.ts` (файл ещё не создан; запись и импорт пока идут через `node:sqlite` напрямую в `src/db/`).
+- Схема в `schema.sql` (`CREATE TABLE IF NOT EXISTS`), без ORM и миграций. Гарантия одного правильного варианта: индекс `one_correct_per_question` и восемь триггеров `options_*` / `questions_*`, в том числе запрещающие REPLACE-пути. Правильный вариант вставляется первым, а `id` вариантов `import.ts` назначает явно (по порядку источника), иначе правильный вариант всегда имел бы наименьший `id`, и клиент угадывал бы ответ без `check_answer`. Триггеры при повторном `db:seed` обновляются, а таблицы и индексы существующей базы не меняются: при изменении таблиц, ограничений или индексов базу нужно пересоздать (удалить файл и выполнить `db:seed`).
+- Seed: файлы `raw-data/` + скрипт `db:seed` (через `tsx`), парсер (сейчас `.claude/skills/raw-data-to-json/parser.ts`, раньше `src/db/raw-data.ts`) и импорт `src/db/import.ts` (ровно один правильный вариант, нет пустых полей, идемпотентно, только добавляет). Отчёт импорта — `src/db/report.ts`. [Устарело: `db:seed` читает JSON из `raw-data/json/`, а не markdown; см. пометку после структуры.]
 - Сервер открывает БД с `readOnly: true`; `PRAGMA foreign_keys = ON`, `journal_mode = WAL`.
+- Инструменты мейнтейнера для БД (команды, не для квиз-сессий; только `SELECT`): `/get-question [id]` (без id случайный вопрос), `/get-question-explanation <id>` (единственный скилл, читающий `is_correct`), `/get-question-notes <id>`, `/get-stats [topic-id]`. `/get-stats` без аргумента выводит сводку по категориям (ID, название, вопросов, уникальных шортноутов; «Итого» считает уникальные заметки по всей выборке); с `topics.id` добавляет строку категории и таблицу вопросов с числом шортноутов у каждого. Только счётчики: ни вариантов, ни `is_correct`, ни текстов заметок. Подробнее: `docs/plan.features.md`, F1.10.
 
 **Конфиг и логи**
 - Конфиг: `zod` над `process.env`, падение на старте с понятной ошибкой; `.env` через `node --env-file`.
@@ -85,14 +92,14 @@ tests/
 
 **Сборка и публикация**
 - `tsc` → `dist/`; dev: `tsx watch src/index.ts`.
-- npm-пакет: `bin`, `files: ["dist", "data", "src/db/schema.sql"]`, `prepublishOnly: build && test`; semver вручную (позже `changesets`).
+- npm-пакет: `bin`, `files: ["dist", "data", "src/db/schema.sql"]`, `prepublishOnly: build && test`; semver вручную (позже `changesets`). Решение пользователя: база данных входит в npm-пакет (`data/certsafary.db` лежит в `data/`, `files` содержит `data`, `.gitignore` на состав пакета не влияет). Базу пересоздают командой `db:seed` из `raw-data/json/` (скилл `/import-raw-data`), перед публикацией она должна быть актуальной. Содержимое `raw-data/` в пакет не входит.
 - Отладка: `npx @modelcontextprotocol/inspector`.
 
 **Отложено:** Docker, CI (GitHub Actions), OAuth 2.1, rate limiting, метрики/трейсинг.
 
 ## Шаги реализации
 1. `npm init`, tsconfig (strict, NodeNext), biome, vitest, скрипты `dev`, `build`, `test`, `db:seed`, `inspect`.
-2. `config.ts`, `db/*`, схема и seed (на 3–5 тестовых вопросах, пока нет данных пользователя).
+2. `config.ts`, `db/*`, схема и seed (на 3–5 тестовых вопросах, пока нет данных пользователя). Seed читает `raw-data/` (файлы пользователя), `data/questions.json` и тестовые вопросы больше не используются; см. README, раздел «Данные». [Устарело: seed читает `raw-data/json/`, JSON готовит `raw-data-to-json`.]
 3. `services/quiz.ts` + unit-тесты.
 4. Tools (5 штук) с `.describe()` на полях и `annotations: { readOnlyHint: true }`; ошибки как `isError: true`.
 5. HTTP-слой: Streamable HTTP в stateless-режиме, Bearer-middleware, проверка Origin, `/health`.
@@ -102,7 +109,7 @@ tests/
 
 ## Верификация
 - `npm test` — unit + integration (в т.ч. что `get_random_question` не содержит `is_correct`, а `check_answer` корректно различает верный/неверный ответ).
-- `npm run dev`, затем `npx @modelcontextprotocol/inspector` по HTTP с Bearer-токеном: пройти цепочку random → check → explanation → shortcode, прочитать ресурсы.
+- `npm run dev`, затем `npx @modelcontextprotocol/inspector` по HTTP с Bearer-токеном: пройти цепочку random → check → explanation → short note, прочитать ресурсы.
 - `curl` без токена на `/mcp` → 401.
 - Подключить к реальному чат-агенту и пройти сценарий голосом/текстом.
 

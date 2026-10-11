@@ -33,6 +33,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   };
 }
 
+/** For scripts that only need the database (db:seed): no auth token required. */
+export function loadDbPath(env: NodeJS.ProcessEnv = process.env): string {
+  const result = envSchema.pick({ DB_PATH: true }).safeParse(env);
+  if (!result.success) {
+    throw new ConfigError("Invalid configuration:\n  - DB_PATH: must not be empty");
+  }
+  return result.data.DB_PATH;
+}
+
 /** For src/index.ts: loads config or prints the message to stderr and exits 1. */
 export function loadConfigOrExit(env: NodeJS.ProcessEnv = process.env): Config {
   try {

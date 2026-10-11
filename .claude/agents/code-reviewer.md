@@ -15,6 +15,7 @@ Process:
    - **Correctness:** logic, edge cases, error handling, races.
    - **Invariant:** the correct answer (`is_correct`) never leaves with the question.
    - **Layering:** `db/` and `services/` know nothing about MCP/HTTP; tools are thin adapters; SQL only in `repository.ts`.
+   - **Boundary:** `src/` never references `_shortNotes*.md` or `.claude/`; the server, `db:seed` and the import read only `raw-data/json/`, and only the `raw-data-to-json` skill reads the markdown.
    - **Types:** `strict`, no `any` or unsafe casts, `noUncheckedIndexedAccess` respected.
    - **Tests:** new behavior is covered, tests are not weakened.
    - **Style:** consistent with neighboring code, imports with `.js`.

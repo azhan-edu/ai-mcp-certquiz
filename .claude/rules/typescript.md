@@ -9,7 +9,7 @@ paths:
 - ESM only (`"type": "module"`); relative imports carry the `.js` extension.
 - `strict` and `noUncheckedIndexedAccess` are on: handle `undefined` from indexed access instead of asserting it away.
 - No `any`. For unknown data use `unknown` and narrow it with zod or a type guard. Avoid `as` casts and non-null `!`.
-- Validate data at the boundaries (env, HTTP input, tool input, `questions.json`) with zod; infer types from the schema with `z.infer` instead of declaring them twice.
+- Validate data at the boundaries (env, HTTP input, tool input, `raw-data/json/` files) with zod; infer types from the schema with `z.infer` instead of declaring them twice.
 - Prefer `node:` prefixed built-ins (`node:crypto`, `node:sqlite`).
 - Throw `Error` subclasses from `src/lib/errors.ts`; never throw strings.
 
