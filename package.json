@@ -21,6 +21,7 @@
     "start": "node --env-file-if-exists=.env dist/index.js",
     "test": "vitest run --passWithNoTests",
     "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx --env-file-if-exists=.env src/db/seed.ts",

@@ -15,18 +15,14 @@ const inputSchema = {
     .positive()
     .safe()
     .optional()
-    .describe(
-      "OPTIONAL. If given, the tool returns this specific question. If omitted, a RANDOM question is returned. Pass it only when the user or an earlier result supplied a real question id; never invent one. Cannot be combined with topicId",
-    ),
+    .describe("Id of a specific question. Omit for a random one. Not together with topicId"),
   topicId: z
     .number()
     .int()
     .positive()
     .safe()
     .optional()
-    .describe(
-      "OPTIONAL. Only narrows the random choice to one topic; omit for any topic. Cannot be combined with questionId",
-    ),
+    .describe("Topic id from list_topics. Omit for any topic. Not together with questionId"),
 };
 
 const outputSchema = {
@@ -44,10 +40,10 @@ export function registerGetQuestionTool(server: McpServer, service: QuizService)
     {
       title: "Get question",
       description:
-        "Returns a quiz question with its answer options. questionId is OPTIONAL: if questionId is given, returns that specific question; if it is omitted, returns a RANDOM question. Pass questionId only when the user or an earlier result supplied a real question id; otherwise omit it. topicId (optional) only narrows the random choice and cannot be combined with questionId. Does not reveal the correct option; use check_answer for that.",
+        "Returns one quiz question as {id, text, options[{id, label}]}: a random one, or a specific one when questionId is given. Use it to start or continue a quiz. Show the text and options to the user and let them choose; do not hint at the answer. Pass questionId only if the user or an earlier result supplied it, never invent one; topicId only narrows the random choice. questionId and topicId together, or an unknown id, return an error. Does not reveal the correct option: to verify an answer use check_answer.",
       inputSchema,
       outputSchema,
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     ({ questionId, topicId }) => {
       if (questionId !== undefined && topicId !== undefined) {

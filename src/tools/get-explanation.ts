@@ -25,10 +25,10 @@ export function registerGetExplanationTool(server: McpServer, service: QuizServi
     {
       title: "Get explanation",
       description:
-        "Returns the explanation of a question: why the correct option is correct and why the others are not. It reveals the answer. Call only after check_answer, and only when the user asks for an explanation. Unknown question returns an error.",
+        "Returns the single stored explanation of a question: why the correct option is correct and why the others are not. It reveals the answer, so call it only after check_answer and only when the user asks for an explanation. For hints before answering use get_short_notes. An unknown question returns an error.",
       inputSchema,
       outputSchema,
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     ({ questionId }) =>
       toolJson("get_explanation", () => ({

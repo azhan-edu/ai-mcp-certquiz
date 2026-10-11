@@ -4,7 +4,7 @@ An educational (non-commercial) remote MCP server in TypeScript. It stores quiz 
 
 random question → check answer → explanation (on request) → short note: how to understand the question (on request).
 
-> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`), the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) and the five prompts (`prompts/`: `get_question`, `check_answer`, `get_question_explanation`, `get_question_notes`, `list_topics`) are implemented and tested. The HTTP server (`src/http.ts`, `src/index.ts`) runs and `/mcp` requires a Bearer token (`src/auth.ts`, F5.2). The ready-made agent folder [`client/`](client/README.md) (role and rules, `.mcp.json`, permissions, token setup) is added; it is configuration only and has not been run against a live server yet. The Origin/Host check (F5.3) is not implemented yet, so keep `HOST` on loopback. The `quiz://questions` resource is not implemented, and a rewrite of the tool descriptions with server-level `instructions` is planned ([docs/plan.tool-description-improvements.md](docs/plan.tool-description-improvements.md)). Detailed plan: [docs/plan.md](docs/plan.md). The "Features" and "Security" sections partly describe the target state (see the notes there).
+> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`), the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) and the five prompts (`prompts/`: `get_question`, `check_answer`, `get_question_explanation`, `get_question_notes`, `list_topics`) are implemented and tested. The HTTP server (`src/http.ts`, `src/index.ts`) runs and `/mcp` requires a Bearer token (`src/auth.ts`, F5.2). The ready-made agent folder [`client/`](client/README.md) (role and rules, `.mcp.json`, permissions, token setup) is added; it is configuration only and has not been run against a live server yet. The Origin/Host check (F5.3) is not implemented yet, so keep `HOST` on loopback. The `quiz://questions` resource is not implemented, and the tool descriptions were rewritten, with server-level `instructions` and tool annotations (done, see [docs/plan.tool-description-improvements.md](docs/plan.tool-description-improvements.md)). Detailed plan: [docs/plan.md](docs/plan.md). The "Features" and "Security" sections partly describe the target state (see the notes there).
 
 ## Features
 
@@ -18,6 +18,8 @@ random question → check answer → explanation (on request) → short note: ho
 | `get_explanation` | `{ questionId }` | explanation |
 | `get_short_notes` | `{ questionId }` | list of short notes of the question (title and text): how to understand the question; an error for a question without notes |
 
+Every tool is annotated `readOnlyHint: true` and `openWorldHint: false`; `idempotentHint: true` is set on all of them except `get_question`, which returns a random question. The quiz order (question → answer → explanation or notes on request) is not in the tool descriptions: the server sends it as `instructions` in the MCP `initialize` response.
+
 **Resources**
 
 - `quiz://topics/{id}` — topic by id (`id`, `name`);
@@ -25,7 +27,7 @@ random question → check answer → explanation (on request) → short note: ho
 - `quiz://questions/{id}` — question by id (`id`, text, options);
 - `quiz://questions/{id}/short-notes` — short notes of a question.
 
-Question resources, like `get_question`, do not contain the correct answer: only `check_answer` knows it. Short notes may hint at the answer and can be read at any time: the goal is learning, not knowledge control.
+Question resources, like `get_question`, do not contain the correct answer: only `check_answer` returns the correct option id. The `get_explanation` text also names the correct option, so it is given only on request, after `check_answer`. Short notes may hint at the answer and can be read at any time: the goal is learning, not knowledge control.
 
 **Prompts**
 
@@ -203,6 +205,7 @@ The "Итого" row counts each distinct note once over the whole selection, so
 | `npm run build` | `tsc` build → `dist/` |
 | `npm test` | unit and integration tests (Vitest) |
 | `npm run lint` | Biome check |
+| `npm run lint:fix` | Biome check with safe auto-fixes (writes files) |
 | `npm run format` | Biome formatting (writes files) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npx tsx .claude/skills/raw-data-to-json/convert.mts` | convert `raw-data/*.md` to `raw-data/json/` (skill `/raw-data-to-json`) |

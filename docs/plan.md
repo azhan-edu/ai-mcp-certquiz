@@ -75,7 +75,7 @@ tests/
 **MCP-слой**
 - `@modelcontextprotocol/sdk` 1.32: `McpServer`, `registerTool`, `registerResource`, `ResourceTemplate`, `StreamableHTTPServerTransport`.
 - Транспорт: Streamable HTTP, stateless (`sessionIdGenerator: undefined`).
-- `zod` 4.x для схем входа/выхода (peer SDK: `^3.25 || ^4.0`); `outputSchema` + `structuredContent`; `annotations.readOnlyHint: true` на всех tools.
+- `zod` 4.x для схем входа/выхода (peer SDK: `^3.25 || ^4.0`); `outputSchema` + `structuredContent`; `annotations.readOnlyHint: true` на всех tools. [Устарело: сейчас `readOnlyHint: true`, `openWorldHint: false` на всех tools и `idempotentHint: true` кроме `get_question`; см. [plan.tool-description-improvements.md](plan.tool-description-improvements.md).]
 
 **HTTP-слой**
 - Express 5 (как в примерах SDK).
@@ -114,7 +114,7 @@ tests/
 1. `npm init`, tsconfig (strict, NodeNext), biome, vitest, скрипты `dev`, `build`, `test`, `db:seed`, `inspect`.
 2. `config.ts`, `db/*`, схема и seed (на 3–5 тестовых вопросах, пока нет данных пользователя). Seed читает `raw-data/` (файлы пользователя), `data/questions.json` и тестовые вопросы больше не используются; см. README, раздел «Данные». [Устарело: seed читает `raw-data/json/`, JSON готовит `raw-data-to-json`.]
 3. `services/quiz.ts` + unit-тесты.
-4. Tools (5 штук) с `.describe()` на полях и `annotations: { readOnlyHint: true }`; ошибки как `isError: true`.
+4. Tools (5 штук) с `.describe()` на полях и `annotations: { readOnlyHint: true }`; ошибки как `isError: true`. [Устарело: annotations см. выше, строка про `zod`; описания и `instructions` сервера переписаны, см. [plan.tool-description-improvements.md](plan.tool-description-improvements.md).]
 5. HTTP-слой: Streamable HTTP в stateless-режиме, Bearer-middleware, проверка Origin, `/health`.
 6. Ресурсы: список вопросов и шаблон по id.
 7. Интеграционные тесты, README (запуск, подключение агента, переменные env).

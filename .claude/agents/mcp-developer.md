@@ -13,7 +13,7 @@ Before starting, read `docs/plan.md` and the existing files in `src/tools/` and 
 Rules:
 - Tools and resources are thin adapters over `src/services/quiz.ts`. No business logic or SQL in them.
 - Register via `registerTool` / `registerResource` / `ResourceTemplate`. Describe input and output with zod schemas with `.describe()` on every field; mirror the result in `structuredContent`.
-- All tools: `annotations: { readOnlyHint: true }`. Return errors as `isError: true` with a clear message, no stack traces.
+- All tools: `annotations: { readOnlyHint: true, openWorldHint: false }`, plus `idempotentHint: true` except `get_question`. The quiz flow goes in server `instructions`, not in a tool description. Return errors as `isError: true` with a clear message, no stack traces.
 - **Invariant:** a question and the resources never contain `is_correct` or any marker of the correct option. Only `check_answer` knows correctness.
 - Imports with the `.js` extension, `strict`, no `any`.
 - A new tool is registered in `src/tools/index.ts` and gets a test.

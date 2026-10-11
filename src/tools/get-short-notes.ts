@@ -31,10 +31,10 @@ export function registerGetShortNotesTool(server: McpServer, service: QuizServic
     {
       title: "Get short notes",
       description:
-        "Returns short notes that help to understand a question. Can be called at any time when the user asks for notes; notes may hint at the answer. Returns an error if the question is unknown or has no notes.",
+        "Returns the short notes linked to a question as {questionId, notes[{id, title, text}]}: brief hints on how to approach or understand it. Safe to call at any time, including before the user answers; notes may hint at the answer but are not the full explanation (that is get_explanation). A question with no notes, or an unknown question, returns an error: tell the user there are no notes and do not retry.",
       inputSchema,
       outputSchema,
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     ({ questionId }) =>
       toolJson("get_short_notes", () => ({

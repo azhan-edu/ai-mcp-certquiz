@@ -18,10 +18,10 @@ export function registerListTopicsTool(server: McpServer, service: QuizService):
     {
       title: "List topics",
       description:
-        "Lists the available quiz topics (id and name). Use a topic id as topicId in get_question to get a random question from that topic. Contains no questions or answers.",
+        "Lists the quiz topics as {topics[{id, name}]}. Use it only when the user asks which topics exist or names a topic and you need its id for get_question. Not needed to start a quiz: get_question works without a topic. Contains no questions or answers.",
       inputSchema: {},
       outputSchema,
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     () =>
       toolJson("list_topics", () => ({

@@ -31,10 +31,10 @@ export function registerCheckAnswerTool(server: McpServer, service: QuizService)
     {
       title: "Check answer",
       description:
-        "Checks the chosen option of a question and returns whether it is correct together with the id of the correct option. Flow: list_topics (optional) -> get_question -> check_answer -> get_explanation / get_short_notes on request. This is the ONLY tool that reveals the correct option, so call it only after the user has chosen an answer. Unknown question or option returns an error.",
+        "Checks the option the user chose and returns {correct, correctOptionId}. Call it once the user has given an answer, never to peek at the solution: this is the only tool that returns the correct option id. Both ids come from the get_question result. For the reasoning behind the answer use get_explanation. An unknown question, or an option that does not belong to the question, returns an error: ask the user to choose from the listed options.",
       inputSchema,
       outputSchema,
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     ({ questionId, optionId }) =>
       toolJson("check_answer", () => {

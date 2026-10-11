@@ -63,7 +63,32 @@ describe("createServer", () => {
       "get_short_notes",
       "list_topics",
     ]);
-    for (const tool of tools) expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
+    for (const tool of tools) {
+      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
+      expect(tool.annotations?.openWorldHint, tool.name).toBe(false);
+      expect(tool.annotations?.idempotentHint === true, tool.name).toBe(
+        tool.name !== "get_question",
+      );
+    }
+  });
+
+  it("gives every tool and every input field a description, without leaking is_correct", async () => {
+    const { tools } = await client.listTools();
+    for (const tool of tools) {
+      expect(tool.description?.trim(), tool.name).toBeTruthy();
+      expect(tool.description, tool.name).not.toMatch(/is_?correct/i);
+      const props = (tool.inputSchema.properties ?? {}) as Record<string, { description?: string }>;
+      for (const [key, field] of Object.entries(props)) {
+        expect(field.description?.trim(), `${tool.name}.${key}`).toBeTruthy();
+      }
+    }
+  });
+
+  it("provides server-level instructions with the quiz flow", () => {
+    const instructions = client.getInstructions();
+    expect(instructions).toMatch(/get_question/);
+    expect(instructions).toMatch(/check_answer/);
+    expect(instructions).not.toMatch(/is_?correct/i);
   });
 
   it("only check_answer declares correctOptionId in its output schema", async () => {
@@ -136,7 +161,7 @@ describe("createServer", () => {
     expect(tool?.description).toMatch(/questionId/);
     expect(tool?.description).toMatch(/random/i);
     const described = schema?.properties?.questionId as { description?: string } | undefined;
-    expect(described?.description).toMatch(/optional/i);
+    expect(described?.description).toMatch(/omit/i);
     expect(described?.description).toMatch(/random/i);
   });
 
