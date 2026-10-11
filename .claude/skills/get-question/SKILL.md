@@ -1,6 +1,6 @@
 ---
 name: get-question
-description: Maintainer tool for inspecting the certsafary SQLite database - shows one stored question (topic, question text and answer options only; no explanation, no answer): the one with the given id, or a random one when no id is given. Use when the maintainer asks to show, get, read or look up a question by id, or to show a random question (e.g. "get question 42", "покажи вопрос 42", "случайный вопрос"). Must not be used to answer or help with a quiz question.
+description: Maintainer tool for inspecting the certquiz SQLite database - shows one stored question (topic, question text and answer options only; no explanation, no answer): the one with the given id, or a random one when no id is given. Use when the maintainer asks to show, get, read or look up a question by id, or to show a random question (e.g. "get question 42", "покажи вопрос 42", "случайный вопрос"). Must not be used to answer or help with a quiz question.
 argument-hint: [question-id]
 disable-model-invocation: true
 ---
@@ -18,14 +18,14 @@ Reads one question (by id, or a random one) from the local SQLite database and s
 
 ## Procedure
 
-1. Run (the id is passed as an argument, never interpolated into the code; the path comes from `DB_PATH`, default `data/certsafary.db`):
+1. Run (the id is passed as an argument, never interpolated into the code; the path comes from `DB_PATH`, default `data/certquiz.db`):
 
    ```bash
    node --env-file-if-exists=.env -e '
    const { DatabaseSync } = require("node:sqlite");
    const arg = process.argv[1];
    if (arg !== undefined && !/^[1-9][0-9]*$/.test(arg)) { console.error("question id must be a positive integer"); process.exit(2); }
-   const path = process.env.DB_PATH || "data/certsafary.db";
+   const path = process.env.DB_PATH || "data/certquiz.db";
    let db;
    try { db = new DatabaseSync(path, { readOnly: true }); } catch { console.error(`database not found or unreadable: ${path} (run npm run db:seed)`); process.exit(3); }
    const base = "SELECT q.id, q.text, t.name AS topic FROM questions q JOIN topics t ON t.id = q.topic_id";

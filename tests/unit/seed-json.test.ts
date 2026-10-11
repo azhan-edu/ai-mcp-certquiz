@@ -39,7 +39,7 @@ describe("loadSeedData", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "certsafary-seedjson-"));
+    dir = mkdtempSync(join(tmpdir(), "certquiz-seedjson-"));
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 

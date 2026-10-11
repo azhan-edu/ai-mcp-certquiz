@@ -191,7 +191,7 @@ describe("createRepository", () => {
     let dir: string;
 
     beforeEach(() => {
-      dir = mkdtempSync(join(tmpdir(), "certsafary-repo-test-"));
+      dir = mkdtempSync(join(tmpdir(), "certquiz-repo-test-"));
     });
 
     afterEach(() => {

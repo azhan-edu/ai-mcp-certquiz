@@ -3,7 +3,7 @@ import { registerResources } from "./resources/index.js";
 import type { QuizService } from "./services/quiz.js";
 import { registerTools } from "./tools/index.js";
 
-const SERVER_NAME = "certsafary";
+const SERVER_NAME = "certquiz";
 const SERVER_VERSION = "0.1.0";
 
 export function createServer(service: QuizService): McpServer {

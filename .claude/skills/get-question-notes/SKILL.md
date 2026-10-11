@@ -1,6 +1,6 @@
 ---
 name: get-question-notes
-description: Maintainer tool for inspecting the certsafary database - shows all short notes related to one question, by question id. Use when the maintainer asks which short notes belong to a question, or to show the notes of question N (e.g. "notes for question 42", "покажи шорт-ноуты вопроса 42"). Must not be used to answer or help with a quiz question, because notes can hint at the answer.
+description: Maintainer tool for inspecting the certquiz database - shows all short notes related to one question, by question id. Use when the maintainer asks which short notes belong to a question, or to show the notes of question N (e.g. "notes for question 42", "покажи шорт-ноуты вопроса 42"). Must not be used to answer or help with a quiz question, because notes can hint at the answer.
 argument-hint: <question-id>
 disable-model-invocation: true
 ---
@@ -20,14 +20,14 @@ The DB holds **all** notes of a question (table `question_short_notes`, many-to-
 
 ## Procedure
 
-1. Run one query (the id is passed as an argument, never interpolated into the code; the path comes from `DB_PATH`, default `data/certsafary.db`):
+1. Run one query (the id is passed as an argument, never interpolated into the code; the path comes from `DB_PATH`, default `data/certquiz.db`):
 
    ```bash
    node --env-file-if-exists=.env -e '
    const { DatabaseSync } = require("node:sqlite");
    const id = process.argv[1];
    if (!/^[1-9][0-9]*$/.test(id)) { console.error("question id must be a positive integer"); process.exit(2); }
-   const path = process.env.DB_PATH || "data/certsafary.db";
+   const path = process.env.DB_PATH || "data/certquiz.db";
    let db;
    try { db = new DatabaseSync(path, { readOnly: true }); } catch { console.error(`database not found or unreadable: ${path} (run npm run db:seed)`); process.exit(3); }
    let rows;

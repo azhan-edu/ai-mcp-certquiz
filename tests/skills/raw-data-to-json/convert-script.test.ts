@@ -65,7 +65,7 @@ describe("convert.mts output directory guard", () => {
 
   beforeEach(() => {
     root = makeConvertRoot(NOTES, SOURCE);
-    outside = mkdtempSync(join(tmpdir(), "certsafary-convert-out-"));
+    outside = mkdtempSync(join(tmpdir(), "certquiz-convert-out-"));
   });
   afterEach(() => {
     rmSync(root, { recursive: true, force: true });

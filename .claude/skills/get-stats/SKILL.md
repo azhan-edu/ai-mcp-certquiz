@@ -1,6 +1,6 @@
 ---
 name: get-stats
-description: Maintainer tool for inspecting the certsafary database - shows how many questions and short notes each category (topic) has, plus, when a topic id is given, a per-question count of short notes. Optional argument is a topic id; without it only the summary of all categories is shown. Use when the maintainer asks for statistics, counts or coverage (e.g. "stats", "статистика по категориям", "сколько вопросов в категории 2"). Counts only: never shows answers, options or note text.
+description: Maintainer tool for inspecting the certquiz database - shows how many questions and short notes each category (topic) has, plus, when a topic id is given, a per-question count of short notes. Optional argument is a topic id; without it only the summary of all categories is shown. Use when the maintainer asks for statistics, counts or coverage (e.g. "stats", "статистика по категориям", "сколько вопросов в категории 2"). Counts only: never shows answers, options or note text.
 argument-hint: [topic-id]
 disable-model-invocation: true
 ---
@@ -25,7 +25,7 @@ Printed by the script as ready markdown tables:
 
 ## Procedure
 
-1. Run one script (the topic id is passed as an argument, never interpolated into the code or SQL; the path comes from `DB_PATH`, default `data/certsafary.db`). Run it from the project root:
+1. Run one script (the topic id is passed as an argument, never interpolated into the code or SQL; the path comes from `DB_PATH`, default `data/certquiz.db`). Run it from the project root:
 
    ```bash
    node --env-file-if-exists=.env -e '
@@ -33,7 +33,7 @@ Printed by the script as ready markdown tables:
    const arg = process.argv[1];
    if (arg !== undefined && !/^[1-9][0-9]*$/.test(arg)) { console.error("topic id must be a positive integer"); process.exit(2); }
    const topic = arg === undefined ? null : Number(arg);
-   const path = process.env.DB_PATH || "data/certsafary.db";
+   const path = process.env.DB_PATH || "data/certquiz.db";
    let db;
    try { db = new DatabaseSync(path, { readOnly: true }); } catch { console.error(`database not found or unreadable: ${path} (run npm run db:seed)`); process.exit(3); }
    let groups, total, details = [];

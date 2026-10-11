@@ -26,7 +26,7 @@ describe("loadConfig", () => {
     expect(loadConfig({ MCP_AUTH_TOKEN: "t" })).toEqual({
       port: 3000,
       authToken: "t",
-      dbPath: "data/certsafary.db",
+      dbPath: "data/certquiz.db",
       logLevel: "info",
     });
   });
@@ -48,7 +48,7 @@ describe("loadConfig", () => {
 
 describe("loadDbPath", () => {
   it("defaults without requiring MCP_AUTH_TOKEN", () => {
-    expect(loadDbPath({})).toBe("data/certsafary.db");
+    expect(loadDbPath({})).toBe("data/certquiz.db");
   });
 
   it("uses DB_PATH when set", () => {

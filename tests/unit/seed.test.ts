@@ -20,7 +20,7 @@ describe("seedDatabase", () => {
   let dbPath: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "certsafary-seed-"));
+    dir = mkdtempSync(join(tmpdir(), "certquiz-seed-"));
     jsonDir = join(dir, "json");
     dbPath = join(dir, "db", "test.db");
     writeFixture(jsonDir, minimalFixture());
@@ -259,7 +259,7 @@ describe("seedDatabase reads only the JSON set", () => {
   let dbPath: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "certsafary-jsononly-"));
+    dir = mkdtempSync(join(tmpdir(), "certquiz-jsononly-"));
     jsonDir = join(dir, "raw-data", "json");
     dbPath = join(dir, "db", "test.db");
   });

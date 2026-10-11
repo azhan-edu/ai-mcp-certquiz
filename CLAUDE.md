@@ -1,4 +1,4 @@
-# certsafary
+# certquiz
 
 Educational (non-commercial) remote MCP server in TypeScript. It stores quiz questions by topic in a local SQLite DB and lets a chat agent run: random question → check answer → explanation (on request) → short note (on request).
 

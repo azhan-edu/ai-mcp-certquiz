@@ -1,4 +1,4 @@
-# Plan: certsafary MCP server (quiz service)
+# Plan: certquiz MCP server (quiz service)
 
 ## Context
 Учебный (некоммерческий) проект: remote MCP-сервер на TypeScript, к которому подключается обычный чат-агент. Сервер хранит в локальной SQLite-базе вопросы по темам с вариантами ответов, и даёт пользователю: случайный вопрос → проверка ответа → (по запросу) объяснение → (по запросу) short note для запоминания. Позже добавятся ресурсы (список вопросов, вопрос по id). Репозиторий пустой (только README.md), Node v24.14, npm 11.
@@ -96,7 +96,7 @@ tests/
 
 **Сборка и публикация**
 - `tsc` → `dist/`; dev: `tsx watch src/index.ts`.
-- npm-пакет: `bin`, `files: ["dist", "data", "src/db/schema.sql"]`, `prepublishOnly: build && test`; semver вручную (позже `changesets`). Решение пользователя: база данных входит в npm-пакет (`data/certsafary.db` лежит в `data/`, `files` содержит `data`, `.gitignore` на состав пакета не влияет). Базу пересоздают командой `db:seed` из `raw-data/json/` (скилл `/import-raw-data`), перед публикацией она должна быть актуальной. Содержимое `raw-data/` в пакет не входит.
+- npm-пакет: `bin`, `files: ["dist", "data", "src/db/schema.sql"]`, `prepublishOnly: build && test`; semver вручную (позже `changesets`). Решение пользователя: база данных входит в npm-пакет (`data/certquiz.db` лежит в `data/`, `files` содержит `data`, `.gitignore` на состав пакета не влияет). Базу пересоздают командой `db:seed` из `raw-data/json/` (скилл `/import-raw-data`), перед публикацией она должна быть актуальной. Содержимое `raw-data/` в пакет не входит.
 - Отладка: `npx @modelcontextprotocol/inspector`.
 
 **Отложено:** Docker, OAuth 2.1, rate limiting, метрики/трейсинг. CI (GitHub Actions) частично внедрён, оставшиеся задачи: [plan.github-actions.md](plan.github-actions.md).

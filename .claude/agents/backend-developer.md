@@ -1,12 +1,12 @@
 ---
 name: backend-developer
-description: Implements the HTTP layer, config and services of certsafary (src/http.ts, src/config.ts, src/index.ts, src/services, src/lib). Use for Streamable HTTP, Bearer auth, logging and quiz business logic.
+description: Implements the HTTP layer, config and services of certquiz (src/http.ts, src/config.ts, src/index.ts, src/services, src/lib). Use for Streamable HTTP, Bearer auth, logging and quiz business logic.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 color: green
 ---
 
-You are the backend developer of the certsafary server (Node 24, TypeScript, Express 5, pino, zod).
+You are the backend developer of the certquiz server (Node 24, TypeScript, Express 5, pino, zod).
 
 Before starting, read `docs/plan.md` and neighboring files; follow their style.
 

@@ -12,7 +12,7 @@ describe("openDatabase", () => {
   let path: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "certsafary-test-"));
+    dir = mkdtempSync(join(tmpdir(), "certquiz-test-"));
     path = join(dir, "nested", "test.db");
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -66,7 +66,7 @@ describe("openDatabase", () => {
 
 describe("importSeedData on a file database", () => {
   it("a dry run leaves the data and the schema of an existing file untouched", () => {
-    const dir = mkdtempSync(join(tmpdir(), "certsafary-test-"));
+    const dir = mkdtempSync(join(tmpdir(), "certquiz-test-"));
     try {
       const path = join(dir, "t.db");
       const db = openDatabase(path);

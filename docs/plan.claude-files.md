@@ -1,9 +1,9 @@
-# Структура файлов Claude для certsafary
+# Структура файлов Claude для certquiz
 
 ## Область применения
-Структура ниже относится к **MCP-серверу certsafary** — репозиторию, где мы пишем сам сервер. Она помогает Claude Code разрабатывать сервер: форматировать код, гонять тесты, добавлять вопросы и tools, не допускать утечки правильного ответа.
+Структура ниже относится к **MCP-серверу certquiz** — репозиторию, где мы пишем сам сервер. Она помогает Claude Code разрабатывать сервер: форматировать код, гонять тесты, добавлять вопросы и tools, не допускать утечки правильного ответа.
 
-`.mcp.json` — единственное исключение: он подключает уже запущенный certsafary к Claude Code, чтобы проверить цепочку random → check → explanation → short note. Это тест сервера, а не клиентское приложение.
+`.mcp.json` — единственное исключение: он подключает уже запущенный certquiz к Claude Code, чтобы проверить цепочку random → check → explanation → short note. Это тест сервера, а не клиентское приложение.
 
 **Клиентское приложение/агент** (то, что будет пользоваться сервером) — отдельный набор файлов, см. раздел «Открытый вопрос».
 
@@ -11,7 +11,7 @@
 ```
 CLAUDE.md                      # коммитится; главный контекст проекта (до ~100 строк)
 CLAUDE.local.md                # в .gitignore; личные заметки/пути
-.mcp.json                      # коммитится; подключение certsafary к Claude Code (пока не создан, после HTTP-слоя)
+.mcp.json                      # коммитится; подключение certquiz к Claude Code (пока не создан, после HTTP-слоя)
 .claude/
   settings.json                # коммитится; permissions (hooks — планируются)
   settings.local.json          # в .gitignore; личные разрешения
@@ -52,7 +52,7 @@ CLAUDE.local.md                # в .gitignore; личные заметки/пу
 ## Содержимое ключевых файлов
 - **CLAUDE.md**: назначение проекта; стек (Node 24, TS, MCP SDK, node:sqlite, Express 5, vitest, biome); команды не дублируются, они в README; слои (`services/` и `db/` не знают про MCP); ключевые решения из `docs/plan.md` (не отдавать правильный ответ, stateless HTTP); ссылка `@docs/plan.md`; запреты (не коммитить `.env`, не менять `schema.sql` без обновления seed).
 - **.claude/settings.json**: `permissions.allow` — `npm run *`, `npx biome *`, `npx tsc --noEmit`, `npx vitest *`, `git status/diff/log`; `deny` — `Read(.env*)`, `Bash(rm -rf *)`; `hooks` — PostToolUse (Edit|Write → format-on-edit), PreToolUse (block-secrets).
-- **.mcp.json**: certsafary-сервер (url `http://localhost:PORT/mcp`, заголовок Bearer из `${MCP_AUTH_TOKEN}`); опционально `@modelcontextprotocol/inspector`.
+- **.mcp.json**: certquiz-сервер (url `http://localhost:PORT/mcp`, заголовок Bearer из `${MCP_AUTH_TOKEN}`); опционально `@modelcontextprotocol/inspector`.
 - **.gitignore** дополнить: `CLAUDE.local.md`, `.claude/settings.local.json`, `.env`.
 
 ## Где хранить best practices и примеры
@@ -100,7 +100,7 @@ CLAUDE.local.md                # в .gitignore; личные заметки/пу
 ## Верификация
 - `/memory` показывает подхваченные CLAUDE.md и rules.
 - `/permissions`, `/hooks` показывают settings.json; правка `.ts` запускает форматирование.
-- `/mcp` показывает certsafary подключённым при запущенном `npm run dev`.
+- `/mcp` показывает certquiz подключённым при запущенном `npm run dev`.
 - `git status`: local-файлы не попадают в коммит.
 
 ## Открытый вопрос: клиентское приложение

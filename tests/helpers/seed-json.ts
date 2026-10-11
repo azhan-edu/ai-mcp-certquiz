@@ -137,7 +137,7 @@ export function writeFixture(dir: string, fx: Fixture): void {
 
 /** Writes the fixture to a temporary directory, loads it through `loadSeedData`, cleans up. */
 export function loaded(fx: Fixture): { data: SeedData; summary: SeedSummary } {
-  const dir = mkdtempSync(join(tmpdir(), "certsafary-fixture-"));
+  const dir = mkdtempSync(join(tmpdir(), "certquiz-fixture-"));
   try {
     writeFixture(dir, fx);
     return loadSeedData(dir);

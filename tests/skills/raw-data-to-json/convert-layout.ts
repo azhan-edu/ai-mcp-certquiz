@@ -12,7 +12,7 @@ const tsxLoader = pathToFileURL(join(project, "node_modules/tsx/dist/esm/index.m
 
 /** Creates a temporary project root with the script, its imports and the given markdown. */
 export function makeConvertRoot(notes: string, source: string): string {
-  const root = mkdtempSync(join(tmpdir(), "certsafary-convert-"));
+  const root = mkdtempSync(join(tmpdir(), "certquiz-convert-"));
   const script = join(root, ".claude/skills/raw-data-to-json");
   mkdirSync(script, { recursive: true });
   mkdirSync(join(root, "src/db"), { recursive: true });

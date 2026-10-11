@@ -10,7 +10,7 @@ Goal: run checks on GitHub after a push, so the local hook (`scripts/pre-commit.
 
 ## Context
 
-- Remote: `git@github.com:azhan-edu/ai-mcp-certsafary.git`. There is no `.github/` yet.
+- Remote: `git@github.com:azhan-edu/ai-mcp-certquiz.git`. There is no `.github/` yet.
 - `CLAUDE.md` currently says "no ... CI ... at this stage". When this plan is implemented, that line must be updated (step 7 of "Steps").
 - `raw-data/` and `data/*.db*` are not in the repository (the answer key stays local). CI tests must run on fixtures (`tests/helpers/seed-json.ts`), never on real questions.
 - Secrets (`.env`, Bearer token) are passed only through GitHub Secrets. The smoke test uses a throwaway token generated in the job.
