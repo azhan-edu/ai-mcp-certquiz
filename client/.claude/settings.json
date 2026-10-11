@@ -1,0 +1,20 @@
+{
+  "enableAllProjectMcpServers": true,
+  "env": {
+    "ENABLE_TOOL_SEARCH": "false"
+  },
+  "permissions": {
+    "allow": ["mcp__certquiz__*"],
+    "deny": [
+      "WebSearch",
+      "WebFetch",
+      "Bash",
+      "Write",
+      "Edit",
+      "Read(../raw-data/**)",
+      "Read(../data/**)",
+      "Read(../.env)",
+      "Read(../src/**)"
+    ]
+  }
+}

@@ -4,7 +4,7 @@ An educational (non-commercial) remote MCP server in TypeScript. It stores quiz 
 
 random question → check answer → explanation (on request) → short note: how to understand the question (on request).
 
-> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`), the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) and the five prompts (`prompts/`: `get_question`, `check_answer`, `get_question_explanation`, `get_question_notes`, `list_topics`) are implemented and tested. The HTTP server (`src/http.ts`, `src/index.ts`) runs and `/mcp` requires a Bearer token (`src/auth.ts`, F5.2). The Origin/Host check (F5.3) is not implemented yet, so keep `HOST` on loopback. Detailed plan: [docs/plan.md](docs/plan.md). The "Features" and "Security" sections partly describe the target state (see the notes there).
+> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`), the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) and the five prompts (`prompts/`: `get_question`, `check_answer`, `get_question_explanation`, `get_question_notes`, `list_topics`) are implemented and tested. The HTTP server (`src/http.ts`, `src/index.ts`) runs and `/mcp` requires a Bearer token (`src/auth.ts`, F5.2). The ready-made agent folder [`client/`](client/README.md) (role and rules, `.mcp.json`, permissions, token setup) is added; it is configuration only and has not been run against a live server yet. The Origin/Host check (F5.3) is not implemented yet, so keep `HOST` on loopback. The `quiz://questions` resource is not implemented, and a rewrite of the tool descriptions with server-level `instructions` is planned ([docs/plan.tool-description-improvements.md](docs/plan.tool-description-improvements.md)). Detailed plan: [docs/plan.md](docs/plan.md). The "Features" and "Security" sections partly describe the target state (see the notes there).
 
 ## Features
 
@@ -99,6 +99,10 @@ Debugging with MCP Inspector (add the `Authorization: Bearer <MCP_AUTH_TOKEN>` h
 ```bash
 npm run inspect
 ```
+
+### Ready-made agent folder (`client/`)
+
+[`client/`](client/README.md) is a ready-made working folder for a coaching agent that uses this service (Claude Code). It holds the agent's role and rules (`CLAUDE.md`), the connection (`.mcp.json`), permissions and tool loading (`.claude/settings.json`) and a place for the personal token (`.claude/settings.local.json`, not committed). The best way to use it is to copy the folder into a separate directory so the agent is isolated from this repository and cannot read the answer key; running it in place (`cd client && claude`) also works but relies only on `deny` rules. The README of the folder explains how to generate the token, register it in the server `.env` and set it in the client. Plan: [docs/plan.client.md](docs/plan.client.md).
 
 ## Data
 
@@ -254,6 +258,7 @@ src/
                 shared.ts (userMessage, idArg)
   lib/          errors.ts (AppError, ConfigError, NotFoundError), logger.ts (pino), ids.ts (parseId: positive integer ids
                 for resource variables and prompt arguments)
+client/         ready-made working folder for a coaching agent (CLAUDE.md, .mcp.json, .claude/settings.json); not part of the server, see client/README.md
 raw-data/       source files with questions and notes (not committed)
   json/         JSON for db:seed, written by the conversion; contains the answer key (not committed)
 data/           SQLite file (not committed)
@@ -274,6 +279,14 @@ tests/          unit and integration (Vitest); skills/raw-data-to-json/ (parser 
 Node.js 24, TypeScript, `@modelcontextprotocol/sdk`, Express 5, `node:sqlite`, zod, pino, Biome, Vitest.
 
 ## Security
+
+Auth token setup (one secret shared by server and client):
+
+1. Create it: `openssl rand -hex 32`.
+2. Server: put it in `.env` in the project root as `MCP_AUTH_TOKEN=<token>` (`cp .env.example .env` if needed) and restart `npm run dev`.
+3. Client: send it as `Authorization: Bearer <token>`. For the ready-made agent folder, set `MCP_AUTH_TOKEN` in `client/.claude/settings.local.json` (not committed) or `export MCP_AUTH_TOKEN=<token>` in the shell; see [client/README.md](client/README.md).
+
+Never commit the token; `.env` and `client/.claude/settings.local.json` are git-ignored.
 
 Implemented (F5.2):
 

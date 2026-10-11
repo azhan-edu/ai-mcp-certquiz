@@ -9,4 +9,5 @@ data/*.db-*
 raw-data/
 
 # Local notes, not committed or published
-docs/warnings.md
+docs/*
+!docs/plan.*
