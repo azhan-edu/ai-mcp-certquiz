@@ -8,7 +8,7 @@
 ## Ключевые проектные решения
 - **Не отдавать правильный ответ вместе с вопросом.** `get_random_question` и ресурсы возвращают только текст и варианты; правильность знает только `check_answer`. Иначе агент «подсмотрит» ответ.
 - **Отдельные tools для каждого шага**: проверка, объяснение, short note — по запросу, как в требованиях.
-- **Решение:** «short note» — короткий текст о том, как смотреть на вопрос и понимать его, — отдельная таблица `short_notes(id, title UNIQUE, text)`. Одну заметку могут использовать несколько вопросов, и у вопроса может быть несколько заметок: связь «вопрос ↔ заметки» многие-ко-многим, таблица `question_short_notes(question_id, short_note_id)`, см. README, раздел «Данные». Заметка отдаётся только по явному запросу, так как может намекать на ответ.
+- **Решение:** «short note» — короткий текст о том, как смотреть на вопрос и понимать его, — отдельная таблица `short_notes(id, title UNIQUE, text)`. Одну заметку могут использовать несколько вопросов, и у вопроса может быть несколько заметок: связь «вопрос ↔ заметки» многие-ко-многим, таблица `question_short_notes(question_id, short_note_id)`, см. README, раздел «Данные». Заметка может намекать на ответ; это допустимо: цель приложения — обучение, а не контроль знаний. Tool `get_short_note` отдаёт её по запросу, а ресурс `quiz://questions/{id}/short-notes` доступен в любой момент. Инвариант это не меняет: правильный вариант знает только `check_answer`, заметки и ресурсы его не раскрывают намеренно (`is_correct` не отдаётся).
 - **Допущение:** у вопроса ровно один правильный вариант. [Устарело: схема теперь не допускает несколько правильных вариантов (см. строку схемы ниже); поддержка нескольких потребует смены схемы и импорта.]
 - **Stateless HTTP**: сессии не нужны, сервер не хранит состояние пользователя, `createServer()` вызывается на каждый запрос.
 - Слой `services/` и `db/` не знает про MCP; tools — тонкие адаптеры.
@@ -28,9 +28,9 @@ src/
     report.ts         # текст отчёта импорта: счётчики и Qn, без правильных вариантов
     run-seed.ts       # seedDatabase(): чтение файлов, импорт, очистка созданного файла при ошибке
     seed.ts           # CLI npm run db:seed (--dry-run, --json-dir; was --raw-dir, design changed, see the note below)
-    repository.ts     # (не создан) prepared statements: random/byId/topics/list
+    repository.ts     # создан, пока минимум: getTopic, getQuestion (с вариантами), getShortNotes; запланированы random/topics/list (prepared statements)
   services/
-    quiz.ts           # getRandomQuestion, checkAnswer, getExplanation, getShortNote
+    quiz.ts           # createQuizService: сейчас getTopic, getQuestion, getShortNotes (NotFoundError из lib/errors.ts); запланированы getRandomQuestion, checkAnswer, getExplanation, getShortNote
   tools/
     index.ts          # registerTools(server)
     get-random-question.ts   # input: { topic? }
@@ -39,8 +39,11 @@ src/
     get-short-note.ts        # input: { questionId }
     list-topics.ts
   resources/
-    index.ts          # registerResources(server)
-    questions.ts      # certsafary://questions (список), certsafary://questions/{id} (ResourceTemplate), без правильных ответов
+    index.ts          # registerResources(server, service)
+    shared.ts         # parseId (id строго положительное целое, иначе -32602), readJson (NotFoundError → -32002, прочие ошибки → -32603, логируются без деталей)
+    topics.ts         # quiz://topics/{id} (ResourceTemplate)
+    questions.ts      # quiz://questions (список, пока не реализован, см. plan.features F4.7), quiz://questions/{id} (ResourceTemplate), без правильных ответов
+    short-notes.ts    # quiz://questions/{id}/short-notes (ResourceTemplate)
   lib/errors.ts, logger.ts   # логи в stderr/pino
 raw-data/            # исходные файлы вопросов и заметок (в .gitignore)
 tests/
@@ -70,7 +73,7 @@ tests/
 - Проверка `Origin`/`Host` (защита от DNS rebinding, требование спецификации MCP); `/health`.
 
 **Данные**
-- `node:sqlite` (`DatabaseSync`), prepared statements, спрятан за `db/repository.ts` (файл ещё не создан; запись и импорт пока идут через `node:sqlite` напрямую в `src/db/`).
+- `node:sqlite` (`DatabaseSync`), prepared statements, спрятан за `db/repository.ts` (файл создан, пока с минимальным набором; запись и импорт пока идут через `node:sqlite` напрямую в `src/db/`).
 - Схема в `schema.sql` (`CREATE TABLE IF NOT EXISTS`), без ORM и миграций. Гарантия одного правильного варианта: индекс `one_correct_per_question` и восемь триггеров `options_*` / `questions_*`, в том числе запрещающие REPLACE-пути. Правильный вариант вставляется первым, а `id` вариантов `import.ts` назначает явно (по порядку источника), иначе правильный вариант всегда имел бы наименьший `id`, и клиент угадывал бы ответ без `check_answer`. Триггеры при повторном `db:seed` обновляются, а таблицы и индексы существующей базы не меняются: при изменении таблиц, ограничений или индексов базу нужно пересоздать (удалить файл и выполнить `db:seed`).
 - Seed: файлы `raw-data/` + скрипт `db:seed` (через `tsx`), парсер (сейчас `.claude/skills/raw-data-to-json/parser.ts`, раньше `src/db/raw-data.ts`) и импорт `src/db/import.ts` (ровно один правильный вариант, нет пустых полей, идемпотентно, только добавляет). Отчёт импорта — `src/db/report.ts`. [Устарело: `db:seed` читает JSON из `raw-data/json/`, а не markdown; см. пометку после структуры.]
 - Сервер открывает БД с `readOnly: true`; `PRAGMA foreign_keys = ON`, `journal_mode = WAL`.

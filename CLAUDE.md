@@ -5,6 +5,7 @@ Educational (non-commercial) remote MCP server in TypeScript. It stores quiz que
 Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 
 ## Goals
+- **Purpose is learning, not knowledge control.** Short notes may hint at the answer and are readable at any time (tool and resource). This does not relax the invariant below.
 - Serve questions to a client agent through MCP tools and resources over Streamable HTTP with a Bearer token.
 - **Core invariant:** only `check_answer` knows the correct option. A question, `list_topics` and the question resources never expose `is_correct` or an equivalent.
 - Stay small and simple: no ORM, migrations, Docker, CI or OAuth at this stage.
@@ -14,7 +15,7 @@ Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 ## Tech stack
 - Node.js 24, TypeScript (strict, ESM, `.js` imports), npm
 - `@modelcontextprotocol/sdk` (Streamable HTTP, stateless), Express 5, zod 4, pino
-- `node:sqlite`; server reads go through `src/db/repository.ts` (planned, not created yet)
+- `node:sqlite`; server reads go through `src/db/repository.ts` (created, partial: `getTopic`, `getQuestion`, `getShortNotes`)
 - Biome (lint + format), Vitest (unit + integration)
 
 Layers: `tools/` and `resources/` → `services/` → `db/`. `db/` and `services/` know nothing about MCP or HTTP. Config only through `config.ts`. Rules per layer live in `.claude/rules/` and load automatically.

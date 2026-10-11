@@ -78,6 +78,27 @@ export function richFixture(): Fixture {
   };
 }
 
+/**
+ * One question with three notes. Note ids follow the list order (Zulu 1, Alpha 2, Mike 3), which
+ * differs from both the alphabetical title order and the link order (Mike, Alpha, Zulu), so
+ * only `ORDER BY` on the note id yields Zulu, Alpha, Mike. Note: `question_short_notes` is a
+ * WITHOUT ROWID table keyed by (question_id, short_note_id), so the link insertion order itself
+ * is not observable in the DB; ids and titles are what can be made to differ.
+ */
+export function notesOrderFixture(): Fixture {
+  return buildFixture({
+    notes: ["Zulu note", "Alpha note", "Mike note"],
+    questions: [
+      {
+        text: "TEST notes question?",
+        options: 3,
+        correct: 2,
+        notes: ["Mike note", "Alpha note", "Zulu note"],
+      },
+    ],
+  });
+}
+
 /** Source `Qn` of a local question id in generated reports: deliberately not 1..n. */
 export const sourceNumber = (id: number): number => id * 3 + 4;
 

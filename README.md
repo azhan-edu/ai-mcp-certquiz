@@ -4,7 +4,7 @@ An educational (non-commercial) remote MCP server in TypeScript. It stores quiz 
 
 random question → check answer → explanation (on request) → short note: how to understand the question (on request).
 
-> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The HTTP server, tools and resources are not implemented yet (there is no `src/index.ts`, `src/http.ts`, `src/server.ts`, `src/tools/`, `src/resources/`), so `npm run dev`, `npm run start` and connecting an agent do not work yet. Detailed plan: [docs/plan.md](docs/plan.md). The "Features", "Connecting an agent" and "Security" sections describe the target state.
+> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The resources and the read layer behind them are implemented (`db/repository.ts`, `services/quiz.ts`, `resources/`), but they are not wired to a server yet. The HTTP server and the tools are not implemented (there is no `src/index.ts`, `src/http.ts`, `src/server.ts`, `src/tools/`), so `npm run dev`, `npm run start` and connecting an agent do not work yet. Detailed plan: [docs/plan.md](docs/plan.md). The "Features", "Connecting an agent" and "Security" sections describe the target state.
 
 ## Features
 
@@ -20,10 +20,12 @@ random question → check answer → explanation (on request) → short note: ho
 
 **Resources**
 
-- `certsafary://questions` — question list;
-- `certsafary://questions/{id}` — question by id.
+- `quiz://topics/{id}` — topic by id (`id`, `name`);
+- `quiz://questions` — question list (not implemented yet);
+- `quiz://questions/{id}` — question by id (`id`, text, options);
+- `quiz://questions/{id}/short-notes` — short notes of a question.
 
-Resources, like `get_random_question`, do not contain the correct answer: only `check_answer` knows it.
+Question resources, like `get_random_question`, do not contain the correct answer: only `check_answer` knows it. Short notes may hint at the answer and can be read at any time: the goal is learning, not knowledge control.
 
 ## Requirements
 
@@ -192,17 +194,23 @@ The "Итого" row counts each distinct note once over the whole selection, so
 src/
   index.ts      HTTP server entry point (planned)
   http.ts       Streamable HTTP, Bearer auth, /health (planned)
-  server.ts     createServer(): registers tools and resources (planned)
+  server.ts     createServer(): registers tools and resources (planned; registerResources is ready)
   config.ts     env parsing (zod)
   db/           SQLite (node:sqlite): connection, schema.sql, seed-json (reads and validates JSON), import,
-                report, run-seed, seed (db:seed CLI); repository.ts (planned). Knows nothing about the markdown
-  services/     quiz business logic (planned)
+                report, run-seed, seed (db:seed CLI). Knows nothing about the markdown.
+                repository.ts: read-only queries for the server: getTopic, getQuestion, getShortNotes (more planned)
+  services/     quiz read logic: createQuizService(repo) with getTopic, getQuestion, getShortNotes;
+                the rest of the quiz logic (random question, check, explanation, short note) is planned
   tools/        MCP tools — thin adapters over services (planned)
-  resources/    MCP resources (planned)
+  resources/    MCP resources (implemented): registerResources(server, service) with quiz://topics/{id},
+                quiz://questions/{id}, quiz://questions/{id}/short-notes; shared.ts: id parsing and error mapping
+  lib/          errors.ts (AppError, ConfigError, NotFoundError), logger.ts (pino)
 raw-data/       source files with questions and notes (not committed)
   json/         JSON for db:seed, written by the conversion; contains the answer key (not committed)
 data/           SQLite file (not committed)
-tests/          unit (present) and integration (planned); skills/raw-data-to-json/ (parser and converter tests)
+tests/          unit and integration (Vitest); skills/raw-data-to-json/ (parser and converter tests)
+  unit/         repository, quiz service, import, seed and other unit tests
+  integration/  resources.test.ts: resources through a client and InMemoryTransport
   helpers/      synthetic raw-data/json fixtures; unit/no-markdown-in-server.test.ts guards that src/ never names the markdown
 .claude/skills/raw-data-to-json/convert.mts   conversion: raw-data/*.md -> raw-data/json/ (the only code that reads the markdown)
 .claude/skills/raw-data-to-json/parser.ts     markdown parser used by convert.mts (part of the skill, not of src/)
