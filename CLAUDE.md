@@ -8,7 +8,8 @@ Details: @README.md, @docs/plan.md, Claude setup: @docs/plan.claude-files.md.
 - **Purpose is learning, not knowledge control.** Short notes may hint at the answer and are readable at any time (tool and resource). This does not relax the invariant below.
 - Serve questions to a client agent through MCP tools and resources over Streamable HTTP with a Bearer token.
 - **Core invariant:** only `check_answer` knows the correct option. A question, `list_topics` and the question resources never expose `is_correct` or an equivalent.
-- Stay small and simple: no ORM, migrations, Docker, CI or OAuth at this stage.
+- Stay small and simple: no ORM, migrations, Docker or OAuth at this stage.
+- GitHub Actions are partly in place (`.github/workflows/`); status and remaining jobs: @docs/plan.github-actions.md.
 - Question content comes from the user (`raw-data/` → `raw-data/json/` via `/raw-data-to-json` → `npm run db:seed`). Never invent real questions, options or explanations.
 - `raw-data/_shortNotes*.md` are read only by the skill `raw-data-to-json` (its parser lives in `.claude/skills/raw-data-to-json/`). The server, `db:seed` and the import use only `raw-data/json/`; `src/` never references the markdown files or `.claude/`.
 

@@ -84,7 +84,7 @@ tests/
 - Логи: `pino` 10.x (JSON, в stderr), `redact` для Authorization и токенов.
 
 **Качество кода**
-- Biome 2.x (линт + формат); `tsc --noEmit` отдельным скриптом. Git-хуки и CI откладываются до этапа CLAUDE.md/CI.
+- Biome 2.x (линт + формат); `tsc --noEmit` отдельным скриптом. Git-хуки и CI откладываются до этапа CLAUDE.md/CI. [Устарело: git-хуки внедрены (см. README, «Git hooks»); CI частично внедрён, статус и план: [plan.github-actions.md](plan.github-actions.md).]
 
 **Тестирование**
 - Vitest 5.x (unit + integration).
@@ -98,7 +98,7 @@ tests/
 - npm-пакет: `bin`, `files: ["dist", "data", "src/db/schema.sql"]`, `prepublishOnly: build && test`; semver вручную (позже `changesets`). Решение пользователя: база данных входит в npm-пакет (`data/certsafary.db` лежит в `data/`, `files` содержит `data`, `.gitignore` на состав пакета не влияет). Базу пересоздают командой `db:seed` из `raw-data/json/` (скилл `/import-raw-data`), перед публикацией она должна быть актуальной. Содержимое `raw-data/` в пакет не входит.
 - Отладка: `npx @modelcontextprotocol/inspector`.
 
-**Отложено:** Docker, CI (GitHub Actions), OAuth 2.1, rate limiting, метрики/трейсинг.
+**Отложено:** Docker, OAuth 2.1, rate limiting, метрики/трейсинг. CI (GitHub Actions) частично внедрён, оставшиеся задачи: [plan.github-actions.md](plan.github-actions.md).
 
 ## Шаги реализации
 1. `npm init`, tsconfig (strict, NodeNext), biome, vitest, скрипты `dev`, `build`, `test`, `db:seed`, `inspect`.
@@ -117,6 +117,6 @@ tests/
 - Подключить к реальному чат-агенту и пройти сценарий голосом/текстом.
 
 ## Вне объёма (следующие этапы)
-CLAUDE.md с правилами кода/тестов, CI, deployment, OAuth, дополнительные ресурсы и prompts.
+CLAUDE.md с правилами кода/тестов, deployment, OAuth, дополнительные ресурсы и prompts. ~~CI~~ — сделано: GitHub Actions внедрены, оставшиеся задачи в [plan.github-actions.md](plan.github-actions.md).
 
 Claude-файлы (CLAUDE.md, rules, skills, агенты, hooks) и размещение best practices — см. [plan.claude-files.md](plan.claude-files.md).

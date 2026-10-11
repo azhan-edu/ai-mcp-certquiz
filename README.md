@@ -198,6 +198,20 @@ The "Итого" row counts each distinct note once over the whole selection, so
 
 Skip it in an emergency with `git commit --no-verify`. Plan: [docs/plan.git-hooks.md](docs/plan.git-hooks.md).
 
+## CI (GitHub Actions)
+
+Workflows are in `.github/workflows/`:
+
+| Workflow | When | Jobs |
+|---|---|---|
+| `ci.yml` | push to any branch and every pull request | `verify` (lint, typecheck, test, build), `secret-scan` (gitleaks), `pr-title` (PRs only: the title must follow Conventional Commits) |
+| `scheduled.yml` | weekly (Monday 03:00 UTC) and manually | `audit` (`npm audit --omit=dev --audit-level=high`), `codeql` (JavaScript/TypeScript) |
+| `main.yml` | push to `main` | `release-please` (release PR, tag, GitHub Release), `build-artifact` (`npm pack` tarball, kept 14 days) |
+
+Dependabot (`.github/dependabot.yml`) opens weekly PRs for npm packages and GitHub Actions; `@modelcontextprotocol/*` is grouped into one PR.
+
+Checks meant to be required for `main`: `verify` and `secret-scan`. Branch protection is not configured yet. The jobs `invariant`, `contract-snapshot` and `mcp-smoke` are planned and need tests that do not exist yet. Plan and status: [docs/plan.github-actions.md](docs/plan.github-actions.md).
+
 ## Architecture
 
 ```
