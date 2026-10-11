@@ -1,10 +1,29 @@
 import { z } from "zod";
 import { ConfigError } from "./lib/errors.js";
 
+export const MIN_AUTH_TOKEN_LENGTH = 32;
+export const AUTH_TOKEN_PLACEHOLDER = "change-me-to-a-long-random-string";
+
+const authTokenSchema = z
+  .string({ error: "is required" })
+  .trim()
+  .superRefine((value, ctx) => {
+    if (value.length === 0) {
+      ctx.addIssue({ code: "custom", message: "must not be empty" });
+    } else if (value === AUTH_TOKEN_PLACEHOLDER) {
+      ctx.addIssue({ code: "custom", message: "must not be the example placeholder" });
+    } else if (value.length < MIN_AUTH_TOKEN_LENGTH) {
+      ctx.addIssue({
+        code: "custom",
+        message: `must be at least ${MIN_AUTH_TOKEN_LENGTH} characters`,
+      });
+    }
+  });
+
 const envSchema = z.object({
   HOST: z.string().trim().min(1).default("127.0.0.1"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  MCP_AUTH_TOKEN: z.string({ error: "is required" }).trim().min(1, "must not be empty"),
+  MCP_AUTH_TOKEN: authTokenSchema,
   DB_PATH: z.string().trim().min(1).default("data/certquiz.db"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 });

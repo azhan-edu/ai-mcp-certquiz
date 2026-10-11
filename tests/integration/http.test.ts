@@ -43,6 +43,8 @@ const LEAK = /is_?correct|correctOptionId/i;
 const INTERNALS =
   /secret detail|\/var\/|\.sqlite|\bSELECT\b|\bat .*\(.*:\d+:\d+\)|node_modules|stack/i;
 
+const TEST_TOKEN = "test-token-not-a-secret";
+const AUTH = { authorization: `Bearer ${TEST_TOKEN}` };
 const ACCEPT = "application/json, text/event-stream";
 const INIT = {
   jsonrpc: "2.0",
@@ -70,7 +72,7 @@ describe("HTTP layer", () => {
         cb();
       },
     });
-    const app = createApp({ service, logger: createLogger("info", sink) });
+    const app = createApp({ service, logger: createLogger("info", sink), authToken: TEST_TOKEN });
     return new Promise((resolve) => {
       server = app.listen(0, "127.0.0.1", () => {
         base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -96,7 +98,9 @@ describe("HTTP layer", () => {
 
   async function connectClient(): Promise<Client> {
     const client = new Client({ name: "http-test", version: "0.0.0" });
-    await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`)));
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: AUTH } }),
+    );
     clients.push(client);
     return client;
   }
@@ -104,7 +108,7 @@ describe("HTTP layer", () => {
   const post = (body: unknown, headers: Record<string, string> = {}) =>
     fetch(`${base}/mcp`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: ACCEPT, ...headers },
+      headers: { "content-type": "application/json", accept: ACCEPT, ...AUTH, ...headers },
       body: typeof body === "string" ? body : JSON.stringify(body),
     });
 
@@ -113,7 +117,7 @@ describe("HTTP layer", () => {
     new Promise<{ status: number; text: string }>((resolve, reject) => {
       const req = request(
         `${base}${path}`,
-        { method, headers: { "content-type": "application/json", accept: ACCEPT } },
+        { method, headers: { "content-type": "application/json", accept: ACCEPT, ...AUTH } },
         (res) => {
           let text = "";
           res.setEncoding("utf8");
@@ -151,7 +155,7 @@ describe("HTTP layer", () => {
     });
 
     it.each(["GET", "DELETE"])("%s /mcp returns 405 with Allow: POST", async (method) => {
-      const res = await fetch(`${base}/mcp`, { method, headers: { accept: ACCEPT } });
+      const res = await fetch(`${base}/mcp`, { method, headers: { accept: ACCEPT, ...AUTH } });
       expect(res.status).toBe(405);
       expect(res.headers.get("allow")).toBe("POST");
       const body = (await res.json()) as { jsonrpc: string; error: { code: number } };
@@ -294,7 +298,7 @@ describe("HTTP layer", () => {
     it("logs method, path, status and durationMs but never body or authorization", async () => {
       const secretBody = "BODY-SECRET-MARKER";
       const res = await post(rpc(5, "tools/list", { note: secretBody }), {
-        authorization: "Bearer TOKEN-SECRET-MARKER",
+        authorization: `Bearer ${TEST_TOKEN}`,
       });
       await res.text();
       await fetch(`${base}/health?token=QUERY-SECRET-MARKER`);
@@ -309,7 +313,7 @@ describe("HTTP layer", () => {
 
       const all = logLines.join("\n");
       expect(all).not.toContain(secretBody);
-      expect(all).not.toContain("TOKEN-SECRET-MARKER");
+      expect(all).not.toContain(TEST_TOKEN);
       expect(all).not.toContain("QUERY-SECRET-MARKER");
       expect(all.toLowerCase()).not.toContain("authorization");
     });

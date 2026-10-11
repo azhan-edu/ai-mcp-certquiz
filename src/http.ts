@@ -2,10 +2,12 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import express, {
   type ErrorRequestHandler,
   type Express,
+  type Request,
   type RequestHandler,
   type Response,
 } from "express";
 import type { Logger } from "pino";
+import { bearerAuth } from "./auth.js";
 import { createServer } from "./server.js";
 import type { QuizService } from "./services/quiz.js";
 
@@ -14,10 +16,16 @@ const BODY_LIMIT = "100kb";
 export interface AppDeps {
   service: QuizService;
   logger: Logger;
+  authToken: string;
 }
 
 function jsonRpcError(res: Response, status: number, code: number, message: string): void {
   res.status(status).json({ jsonrpc: "2.0", error: { code, message }, id: null });
+}
+
+/** Path without query string. originalUrl, because req.path loses the mount prefix inside app.use("/mcp"). */
+function requestPath(req: Request): string {
+  return req.originalUrl.split("?")[0] ?? "";
 }
 
 /** Logs method, path, status and duration only: never bodies, headers or query strings. */
@@ -29,7 +37,7 @@ function requestLogger(logger: Logger): RequestHandler {
       logger.info(
         {
           method: req.method,
-          path: req.path,
+          path: requestPath(req),
           status: res.statusCode,
           durationMs,
           aborted: !res.writableFinished,
@@ -42,7 +50,7 @@ function requestLogger(logger: Logger): RequestHandler {
 }
 
 /** Builds the Express app without listening. Middleware order: log, body parsing, routes, 404, errors. */
-export function createApp({ service, logger }: AppDeps): Express {
+export function createApp({ service, logger, authToken }: AppDeps): Express {
   const app = express();
   app.disable("x-powered-by");
 
@@ -52,7 +60,10 @@ export function createApp({ service, logger }: AppDeps): Express {
     res.status(200).json({ status: "ok" });
   });
 
-  // Extension point: authentication (F5.2) and Origin/Host checks (F5.3) go here, before the body parser on /mcp.
+  // Authentication runs before body parsing, for every method on /mcp.
+  // Extension point: Origin/Host checks (F5.3) go here too.
+  app.use("/mcp", bearerAuth(authToken));
+
   app.post("/mcp", express.json({ limit: BODY_LIMIT }), async (req, res, next) => {
     const server = createServer(service);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
@@ -95,7 +106,7 @@ export function createApp({ service, logger }: AppDeps): Express {
       jsonRpcError(res, err.status, -32600, "Invalid request.");
     } else {
       logger.error(
-        { method: req.method, path: req.path, errName: errName(err) },
+        { method: req.method, path: requestPath(req), errName: errName(err) },
         "unhandled error",
       );
       jsonRpcError(res, 500, -32603, "Internal server error.");

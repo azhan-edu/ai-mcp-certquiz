@@ -52,8 +52,8 @@ F4.2–F4.6 were independent of each other (any order after F4.1); all are done.
 ## Stage 5. Remote access
 | # | Feature | Result / done criteria |
 |---|---|---|
-| F5.1 | **HTTP server**: Express 5 + Streamable HTTP, stateless, `/health`, entry point `index.ts` | **Done.** `GET /health` returns `{status:"ok"}`; `POST /mcp` is stateless with a 100kb JSON body limit; `GET`/`DELETE /mcp` give 405 with `Allow: POST`; errors are generic JSON-RPC errors without stack, path or SQL; the request log has method, path, status, durationMs and aborted only. `index.ts` opens the DB read-only, exits 1 with a hint to run `db:seed` when the DB is missing, shuts down gracefully on SIGINT/SIGTERM, and listens on `HOST` (default `127.0.0.1`). **No authentication yet** (F5.2, F5.3 still open), so keep `HOST` on loopback. Covered by `tests/integration/http.test.ts`. MCP Inspector connection is not covered by a test |
-| F5.2 | **Bearer authentication** (`timingSafeEqual`) | A request without a token or with a wrong one gets 401 |
+| F5.1 | **HTTP server**: Express 5 + Streamable HTTP, stateless, `/health`, entry point `index.ts` | **Done.** `GET /health` returns `{status:"ok"}`; `POST /mcp` is stateless with a 100kb JSON body limit; `GET`/`DELETE /mcp` give 405 with `Allow: POST` for authenticated requests (without a token: 401, see F5.2); errors are generic JSON-RPC errors without stack, path or SQL; the request log has method, path (without query string), status, durationMs and aborted only. `index.ts` opens the DB read-only, exits 1 with a hint to run `db:seed` when the DB is missing, shuts down gracefully on SIGINT/SIGTERM, and listens on `HOST` (default `127.0.0.1`). Bearer authentication is F5.2 (done); Origin/Host (F5.3) is still open, so keep `HOST` on loopback. Covered by `tests/integration/http.test.ts`. MCP Inspector connection is not covered by a test |
+| F5.2 | **Bearer authentication** (`timingSafeEqual`) | **Done.** `bearerAuth(token)` (`src/auth.ts`) is mounted on `/mcp` before the JSON body parser, for every method. The scheme is case-insensitive, one space; both sides are hashed with SHA-256 and compared with `crypto.timingSafeEqual`. Missing, malformed, empty and wrong tokens give the same 401 with `WWW-Authenticate: Bearer` and a JSON-RPC body `{error:{code:-32001,message:"Unauthorized."}}`. Unauthenticated GET/DELETE `/mcp` give 401 (405 only when authenticated); `/health` stays public. `createApp` takes `authToken`. `MCP_AUTH_TOKEN` must be at least 32 characters and not the `.env.example` placeholder. Covered by `tests/unit/auth.test.ts` and `tests/integration/http-auth.test.ts` |
 | F5.3 | **DNS rebinding protection**: `Origin` and `Host` checks | A foreign Origin gets 403 |
 
 ## Stage 6. Quality and release
@@ -61,11 +61,11 @@ F4.2–F4.6 were independent of each other (any order after F4.1); all are done.
 |---|---|---|
 | F6.1 | **Integration tests** for the protocol and HTTP | The full scenario random → check → explanation → short note is green |
 | F6.2 | **README**: how to run, env variables, connecting to a chat agent | The service can be brought up from scratch using the README |
-| F6.3 | **npm package preparation**: `bin`, `files`, `engines`, `prepublishOnly`, `npm pack` check | The tarball contains `dist` and `schema.sql`; the DB file is not part of the package (`data` in `files` is debatable, see `plan.md`) |
+| F6.3 | **npm package preparation**: `bin`, `files`, `engines`, `prepublishOnly`, `npm pack` check | The tarball contains `dist`, `schema.sql` and `data/.gitkeep`; the DB file is not part of the package (`files` lists `data/.gitkeep`, not `data`; the earlier decision to ship the DB is outdated, see `plan.md`) |
 | F6.4 | **Manual check with a real chat agent** | The scenario is passed by text and by voice |
 
 ## Out of scope (next stages)
 CLAUDE.md with code rules, CI, deployment, OAuth 2.1, rate limiting, additional resources and prompts, user answer statistics (will require state storage).
 
 ## Recommended order
-First build a **vertical slice**: F0.1 → F1.1–F1.4 → F3.1 → F4.1 → F4.2 → F4.3. This gives a minimally working quiz (question and check) inside the process, without the network. Tools F4.4–F4.6 are done as well; the next step is HTTP and authentication.
+First build a **vertical slice**: F0.1 → F1.1–F1.4 → F3.1 → F4.1 → F4.2 → F4.3. This gives a minimally working quiz (question and check) inside the process, without the network. Tools F4.4–F4.6 are done as well; F5.1 and F5.2 (HTTP and Bearer authentication) are done too; the next step is Origin/Host (F5.3).

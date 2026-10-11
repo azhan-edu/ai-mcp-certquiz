@@ -17,7 +17,7 @@
 ```
 src/
   index.ts            # запуск HTTP-сервера (bin-точка входа) (готово, F5.1)
-  http.ts             # Express/Streamable HTTP, /health (готово, F5.1; bearer-auth F5.2 и Origin/Host F5.3 пока нет)
+  http.ts             # Express/Streamable HTTP, /health (готово, F5.1; Origin/Host F5.3 пока нет) [Устарело: bearer-auth F5.2 готов, см. auth.ts]
   server.ts           # createServer(service): McpServer + регистрация tools/resources (готово, F4.1)
   config.ts           # zod-разбор env: HOST, PORT, MCP_AUTH_TOKEN, DB_PATH, LOG_LEVEL; loadDbPath() для db:seed
   db/
@@ -96,7 +96,7 @@ tests/
 
 **Сборка и публикация**
 - `tsc` → `dist/`; dev: `tsx watch src/index.ts`.
-- npm-пакет: `bin`, `files: ["dist", "data", "src/db/schema.sql"]`, `prepublishOnly: build && test`; semver вручную (позже `changesets`). Решение пользователя: база данных входит в npm-пакет (`data/certquiz.db` лежит в `data/`, `files` содержит `data`, `.gitignore` на состав пакета не влияет). Базу пересоздают командой `db:seed` из `raw-data/json/` (скилл `/import-raw-data`), перед публикацией она должна быть актуальной. Содержимое `raw-data/` в пакет не входит.
+- npm-пакет: `bin`, `files: ["dist", "data", "src/db/schema.sql"]`, `prepublishOnly: build && test`; semver вручную (позже `changesets`). Решение пользователя: база данных входит в npm-пакет (`data/certquiz.db` лежит в `data/`, `files` содержит `data`, `.gitignore` на состав пакета не влияет). Базу пересоздают командой `db:seed` из `raw-data/json/` (скилл `/import-raw-data`), перед публикацией она должна быть актуальной. Содержимое `raw-data/` в пакет не входит. [Устарело: решение о базе в пакете пересмотрено. Сейчас `files` содержит `dist`, `src/db/schema.sql` и `data/.gitkeep`, а не `data`; файлы `data/*.db*` в `.gitignore`, `data/certquiz.db` удалён из индекса git (`git rm --cached`). Предложение: считать этот абзац историей решения и не публиковать базу с ответами; при необходимости зафиксировать новое решение отдельной записью.]
 - Отладка: `npx @modelcontextprotocol/inspector`.
 
 **Отложено:** Docker, OAuth 2.1, rate limiting, метрики/трейсинг. CI (GitHub Actions) частично внедрён, оставшиеся задачи: [plan.github-actions.md](plan.github-actions.md).
@@ -109,7 +109,7 @@ tests/
 5. HTTP-слой: Streamable HTTP в stateless-режиме, Bearer-middleware, проверка Origin, `/health`.
 6. Ресурсы: список вопросов и шаблон по id.
 7. Интеграционные тесты, README (запуск, подключение агента, переменные env).
-8. Подготовка к npm: `bin`, `files` (dist + data + schema.sql), `engines: node>=24`.
+8. Подготовка к npm: `bin`, `files` (dist + data + schema.sql), `engines: node>=24`. [Устарело: `files` сейчас dist + schema.sql + `data/.gitkeep`, см. пункт про npm-пакет выше.]
 
 ## Верификация
 - `npm test` — unit + integration (в т.ч. что `get_question` не содержит `is_correct`, а `check_answer` корректно различает верный/неверный ответ).

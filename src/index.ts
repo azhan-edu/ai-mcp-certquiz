@@ -9,6 +9,14 @@ import { createQuizService } from "./services/quiz.js";
 const config = loadConfigOrExit();
 const logger = createLogger(config.logLevel);
 
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
+if (!LOOPBACK_HOSTS.has(config.host)) {
+  logger.warn(
+    { host: config.host },
+    "HOST is not loopback: Origin/Host checks are not implemented yet, do not expose this server",
+  );
+}
+
 let db: ReturnType<typeof openDatabase>;
 try {
   db = openDatabase(config.dbPath, { readOnly: true });
@@ -18,7 +26,7 @@ try {
 }
 
 const service = createQuizService(createRepository(db));
-const app = createApp({ service, logger });
+const app = createApp({ service, logger, authToken: config.authToken });
 
 const httpServer = app.listen(config.port, config.host, (err?: Error) => {
   if (err) return; // bind failure is reported by the "error" handler below
