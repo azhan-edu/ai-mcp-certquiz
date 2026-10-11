@@ -173,8 +173,8 @@ describe("quiz resources", () => {
       getRandomQuestion: boom,
       checkAnswer: boom,
       getExplanation: boom,
+      listShortNotes: boom,
       getShortNotes: boom,
-      getShortNote: boom,
     };
 
     it.each(["quiz://topics/1", "quiz://questions/1", "quiz://questions/1/short-notes"])(

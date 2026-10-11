@@ -58,13 +58,13 @@ describe("createQuizService", () => {
     }
   });
 
-  it("getShortNotes returns notes ordered by id", () => {
-    const ids = service.getShortNotes(q1()).map((n) => n.id);
+  it("listShortNotes returns notes ordered by id", () => {
+    const ids = service.listShortNotes(q1()).map((n) => n.id);
     expect(ids).toHaveLength(2);
     expect(ids).toEqual([...ids].sort((a, b) => a - b));
   });
 
-  it("getShortNotes returns full note objects ordered by id, not by title or link order", () => {
+  it("listShortNotes returns full note objects ordered by id, not by title or link order", () => {
     const fresh = new DatabaseSync(":memory:");
     try {
       fresh.exec("PRAGMA foreign_keys = ON");
@@ -75,7 +75,7 @@ describe("createQuizService", () => {
             .id,
         );
       const qid = Number((fresh.prepare("SELECT id FROM questions").get() as { id: number }).id);
-      expect(createQuizService(createRepository(fresh)).getShortNotes(qid)).toEqual([
+      expect(createQuizService(createRepository(fresh)).listShortNotes(qid)).toEqual([
         { id: noteId("Zulu note"), title: "Zulu note", text: "Test body of Zulu note." },
         { id: noteId("Alpha note"), title: "Alpha note", text: "Test body of Alpha note." },
         { id: noteId("Mike note"), title: "Mike note", text: "Test body of Mike note." },
@@ -91,12 +91,12 @@ describe("createQuizService", () => {
     expect(ids).toEqual([...ids].sort((a, b) => a - b));
   });
 
-  it("getShortNotes returns [] for an existing question without notes", () => {
-    expect(service.getShortNotes(q2())).toEqual([]);
+  it("listShortNotes returns [] for an existing question without notes", () => {
+    expect(service.listShortNotes(q2())).toEqual([]);
   });
 
-  it("getShortNotes throws NotFoundError for an unknown question", () => {
-    expect(() => service.getShortNotes(999)).toThrow(NotFoundError);
+  it("listShortNotes throws NotFoundError for an unknown question", () => {
+    expect(() => service.listShortNotes(999)).toThrow(NotFoundError);
   });
 
   const optionId = (label: string): number => idOf("SELECT id FROM options WHERE label = ?", label);
@@ -237,22 +237,22 @@ describe("createQuizService", () => {
     });
   });
 
-  describe("getShortNote", () => {
+  describe("getShortNotes", () => {
     it("returns all notes of the question ordered by id", () => {
-      const notes = service.getShortNote(q1());
+      const notes = service.getShortNotes(q1());
       expect(notes).toHaveLength(2);
       const ids = notes.map((n) => n.id);
       expect(ids).toEqual([...ids].sort((a, b) => a - b));
-      expect(notes).toEqual(service.getShortNotes(q1()));
+      expect(notes).toEqual(service.listShortNotes(q1()));
     });
 
-    it("throws NotFoundError for a question without notes, while getShortNotes returns []", () => {
-      expect(() => service.getShortNote(q2())).toThrow(NotFoundError);
-      expect(service.getShortNotes(q2())).toEqual([]);
+    it("throws NotFoundError for a question without notes, while listShortNotes returns []", () => {
+      expect(() => service.getShortNotes(q2())).toThrow(NotFoundError);
+      expect(service.listShortNotes(q2())).toEqual([]);
     });
 
     it("throws NotFoundError for an unknown question", () => {
-      expect(() => service.getShortNote(999)).toThrow(NotFoundError);
+      expect(() => service.getShortNotes(999)).toThrow(NotFoundError);
     });
   });
 

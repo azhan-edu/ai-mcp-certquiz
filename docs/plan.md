@@ -6,9 +6,9 @@
 Решения пользователя: `node:sqlite`, Streamable HTTP + Bearer-токен из env, npm, публикация как npm-пакет, свои вопросы пользователь даст позже (нужна схема + seed-скрипт, формат данных подстроим).
 
 ## Ключевые проектные решения
-- **Не отдавать правильный ответ вместе с вопросом.** `get_random_question` и ресурсы возвращают только текст и варианты; правильность знает только `check_answer`. Иначе агент «подсмотрит» ответ.
+- **Не отдавать правильный ответ вместе с вопросом.** `get_question` и ресурсы возвращают только текст и варианты; правильность знает только `check_answer`. Иначе агент «подсмотрит» ответ.
 - **Отдельные tools для каждого шага**: проверка, объяснение, short note — по запросу, как в требованиях.
-- **Решение:** «short note» — короткий текст о том, как смотреть на вопрос и понимать его, — отдельная таблица `short_notes(id, title UNIQUE, text)`. Одну заметку могут использовать несколько вопросов, и у вопроса может быть несколько заметок: связь «вопрос ↔ заметки» многие-ко-многим, таблица `question_short_notes(question_id, short_note_id)`, см. README, раздел «Данные». Заметка может намекать на ответ; это допустимо: цель приложения — обучение, а не контроль знаний. Tool `get_short_note` отдаёт её по запросу, а ресурс `quiz://questions/{id}/short-notes` доступен в любой момент. Инвариант это не меняет: правильный вариант знает только `check_answer`, заметки и ресурсы его не раскрывают намеренно (`is_correct` не отдаётся).
+- **Решение:** «short note» — короткий текст о том, как смотреть на вопрос и понимать его, — отдельная таблица `short_notes(id, title UNIQUE, text)`. Одну заметку могут использовать несколько вопросов, и у вопроса может быть несколько заметок: связь «вопрос ↔ заметки» многие-ко-многим, таблица `question_short_notes(question_id, short_note_id)`, см. README, раздел «Данные». Заметка может намекать на ответ; это допустимо: цель приложения — обучение, а не контроль знаний. Tool `get_short_notes` отдаёт список заметок вопроса по запросу, а ресурс `quiz://questions/{id}/short-notes` доступен в любой момент. Инвариант это не меняет: правильный вариант знает только `check_answer`, заметки и ресурсы его не раскрывают намеренно (`is_correct` не отдаётся).
 - **Допущение:** у вопроса ровно один правильный вариант. [Устарело: схема теперь не допускает несколько правильных вариантов (см. строку схемы ниже); поддержка нескольких потребует смены схемы и импорта.]
 - **Stateless HTTP**: сессии не нужны, сервер не хранит состояние пользователя, `createServer()` вызывается на каждый запрос.
 - Слой `services/` и `db/` не знает про MCP; tools — тонкие адаптеры.
@@ -18,7 +18,7 @@
 src/
   index.ts            # запуск HTTP-сервера (bin-точка входа)
   http.ts             # Express/Streamable HTTP, bearer-auth, /health
-  server.ts           # createServer(): McpServer + регистрация tools/resources
+  server.ts           # createServer(service): McpServer + регистрация tools/resources (готово, F4.1)
   config.ts           # zod-разбор env: PORT, MCP_AUTH_TOKEN, DB_PATH, LOG_LEVEL; loadDbPath() для db:seed
   db/
     connection.ts     # открытие DatabaseSync (node:sqlite), applySchema, PRAGMA foreign_keys/WAL
@@ -30,14 +30,15 @@ src/
     seed.ts           # CLI npm run db:seed (--dry-run, --json-dir; was --raw-dir, design changed, see the note below)
     repository.ts     # создан: getTopic, listTopics, getQuestion (с вариантами), getRandomQuestionId(topicId?), getCorrectOptionId (единственное серверное чтение is_correct, только для checkAnswer), getExplanation, getShortNotes (prepared statements)
   services/
-    quiz.ts           # createQuizService: getTopic, listTopics, getQuestion, getRandomQuestion(topicId?), checkAnswer, getExplanation, getShortNotes (ресурс, [] без заметок), getShortNote (tool, NotFoundError без заметок); NotFoundError из lib/errors.ts, для вопроса без правильного варианта AppError
+    quiz.ts           # createQuizService: getTopic, listTopics, getQuestion, getRandomQuestion(topicId?), checkAnswer, getExplanation, listShortNotes (ресурс, [] без заметок), getShortNotes (tool, NotFoundError без заметок); NotFoundError из lib/errors.ts, для вопроса без правильного варианта AppError
   tools/
-    index.ts          # registerTools(server)
-    get-random-question.ts   # input: { topicId? }
-    check-answer.ts          # input: { questionId, optionId } -> { correct, correctOptionId }
-    get-explanation.ts       # input: { questionId }
-    get-short-note.ts        # input: { questionId }
-    list-topics.ts
+    index.ts          # registerTools(server, service) (готово)
+    shared.ts         # toolJson, toolError, toolInputError: NotFoundError → isError с текстом; прочие ошибки → «Internal error», без деталей в ответе (готово)
+    get-question.ts          # input: { questionId?, topicId? } (вместе нельзя); output: { id, text, options: [{id, label}] } (готово, F4.2)
+    check-answer.ts          # input: { questionId, optionId } -> { correct, correctOptionId } (готово, F4.3)
+    get-explanation.ts       # input: { questionId } (готово, F4.4)
+    get-short-notes.ts       # input: { questionId }; отдаёт список заметок (готово, F4.5)
+    list-topics.ts           # (готово, F4.6)
   resources/
     index.ts          # registerResources(server, service)
     shared.ts         # parseId (id строго положительное целое, иначе -32602), readJson (NotFoundError → -32002, прочие ошибки → -32603, логируются без деталей)
@@ -111,7 +112,7 @@ tests/
 8. Подготовка к npm: `bin`, `files` (dist + data + schema.sql), `engines: node>=24`.
 
 ## Верификация
-- `npm test` — unit + integration (в т.ч. что `get_random_question` не содержит `is_correct`, а `check_answer` корректно различает верный/неверный ответ).
+- `npm test` — unit + integration (в т.ч. что `get_question` не содержит `is_correct`, а `check_answer` корректно различает верный/неверный ответ).
 - `npm run dev`, затем `npx @modelcontextprotocol/inspector` по HTTP с Bearer-токеном: пройти цепочку random → check → explanation → short note, прочитать ресурсы.
 - `curl` без токена на `/mcp` → 401.
 - Подключить к реальному чат-агенту и пройти сценарий голосом/текстом.

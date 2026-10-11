@@ -4,7 +4,7 @@ An educational (non-commercial) remote MCP server in TypeScript. It stores quiz 
 
 random question → check answer → explanation (on request) → short note: how to understand the question (on request).
 
-> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The resources and the read layer behind them are implemented (`db/repository.ts`, `services/quiz.ts`, `resources/`), but they are not wired to a server yet. The HTTP server and the tools are not implemented (there is no `src/index.ts`, `src/http.ts`, `src/server.ts`, `src/tools/`), so `npm run dev`, `npm run start` and connecting an agent do not work yet. Detailed plan: [docs/plan.md](docs/plan.md). The "Features", "Connecting an agent" and "Security" sections describe the target state.
+> Status: in development. Config, the DB schema and the question import (`raw-data/` → `raw-data/json/` by the `raw-data-to-json` skill → `npm run db:seed`) are ready. The read layer (`db/repository.ts`, `services/quiz.ts`), the MCP server (`server.ts`, `createServer()`), the resources (`resources/`) and the five tools (`tools/`: `list_topics`, `get_question`, `check_answer`, `get_explanation`, `get_short_notes`) are implemented and tested over an in-memory transport. The HTTP server is not implemented yet (there is no `src/index.ts` and `src/http.ts`), so `npm run dev`, `npm run start` and connecting an agent do not work yet. Detailed plan: [docs/plan.md](docs/plan.md). The "Features", "Connecting an agent" and "Security" sections describe the target state.
 
 ## Features
 
@@ -13,10 +13,10 @@ random question → check answer → explanation (on request) → short note: ho
 | Tool | Input | Result |
 |---|---|---|
 | `list_topics` | — | topic list |
-| `get_random_question` | `{ topicId? }` | question text and answer options (without the correctness flag) |
+| `get_question` | `{ questionId?, topicId? }` | question `id`, `text` and `options` (`id`, `label`) without the correctness flag; with `questionId` that question, without it a random one (optionally within `topicId`); `questionId` and `topicId` together give an error |
 | `check_answer` | `{ questionId, optionId }` | `{ correct, correctOptionId }` |
 | `get_explanation` | `{ questionId }` | explanation |
-| `get_short_note` | `{ questionId }` | short note: how to understand the question; an error for a question without a note |
+| `get_short_notes` | `{ questionId }` | list of short notes of the question (title and text): how to understand the question; an error for a question without notes |
 
 **Resources**
 
@@ -25,7 +25,7 @@ random question → check answer → explanation (on request) → short note: ho
 - `quiz://questions/{id}` — question by id (`id`, text, options);
 - `quiz://questions/{id}/short-notes` — short notes of a question.
 
-Question resources, like `get_random_question`, do not contain the correct answer: only `check_answer` knows it. Short notes may hint at the answer and can be read at any time: the goal is learning, not knowledge control.
+Question resources, like `get_question`, do not contain the correct answer: only `check_answer` knows it. Short notes may hint at the answer and can be read at any time: the goal is learning, not knowledge control.
 
 ## Requirements
 
@@ -218,16 +218,17 @@ Checks meant to be required for `main`: `verify` and `secret-scan`. Branch prote
 src/
   index.ts      HTTP server entry point (planned)
   http.ts       Streamable HTTP, Bearer auth, /health (planned)
-  server.ts     createServer(): registers tools and resources (planned; registerResources is ready)
+  server.ts     createServer(service): McpServer with registerTools and registerResources (implemented)
   config.ts     env parsing (zod)
   db/           SQLite (node:sqlite): connection, schema.sql, seed-json (reads and validates JSON), import,
                 report, run-seed, seed (db:seed CLI). Knows nothing about the markdown.
                 repository.ts: read-only queries for the server: getTopic, listTopics, getQuestion, getRandomQuestionId,
                 getCorrectOptionId (the only read of is_correct, used only by checkAnswer), getExplanation, getShortNotes
   services/     quiz logic: createQuizService(repo) with getTopic, listTopics, getQuestion, getRandomQuestion(topicId?),
-                checkAnswer, getExplanation, getShortNotes, getShortNote (the service-level part of the tools is done;
-                the tools themselves are planned)
-  tools/        MCP tools — thin adapters over services (planned)
+                checkAnswer, getExplanation, listShortNotes, getShortNotes
+  tools/        MCP tools (implemented) — thin adapters over services: index.ts (registerTools), list-topics.ts,
+                get-question.ts, check-answer.ts, get-explanation.ts, get-short-notes.ts,
+                shared.ts (toolJson, toolError, toolInputError)
   resources/    MCP resources (implemented): registerResources(server, service) with quiz://topics/{id},
                 quiz://questions/{id}, quiz://questions/{id}/short-notes; shared.ts: id parsing and error mapping
   lib/          errors.ts (AppError, ConfigError, NotFoundError), logger.ts (pino)
@@ -236,7 +237,9 @@ raw-data/       source files with questions and notes (not committed)
 data/           SQLite file (not committed)
 tests/          unit and integration (Vitest); skills/raw-data-to-json/ (parser and converter tests)
   unit/         repository, quiz service, import, seed and other unit tests
-  integration/  resources.test.ts: resources through a client and InMemoryTransport
+  integration/  resources.test.ts: resources through a client and InMemoryTransport; server.test.ts: createServer(),
+                the five tools listed; tools-*.test.ts: one file per tool (tools-get-question.test.ts also holds
+                the no-answer-leak invariant)
   helpers/      synthetic raw-data/json fixtures; unit/no-markdown-in-server.test.ts guards that src/ never names the markdown
 .claude/skills/raw-data-to-json/convert.mts   conversion: raw-data/*.md -> raw-data/json/ (the only code that reads the markdown)
 .claude/skills/raw-data-to-json/parser.ts     markdown parser used by convert.mts (part of the skill, not of src/)

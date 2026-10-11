@@ -14,7 +14,7 @@ export function registerShortNotesResource(server: McpServer, service: QuizServi
     },
     (uri, { id }) => {
       const questionId = parseId(id, "question");
-      return readJson(uri, () => service.getShortNotes(questionId));
+      return readJson(uri, () => service.listShortNotes(questionId));
     },
   );
 }

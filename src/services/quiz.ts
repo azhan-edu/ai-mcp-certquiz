@@ -20,9 +20,9 @@ export interface QuizService {
   checkAnswer(questionId: number, optionId: number): AnswerResult;
   getExplanation(questionId: number): string;
   /** Resource view: `[]` for a question without notes. */
-  getShortNotes(questionId: number): ShortNote[];
+  listShortNotes(questionId: number): ShortNote[];
   /** Tool view: all notes of the question; none throws `NotFoundError`. */
-  getShortNote(questionId: number): ShortNote[];
+  getShortNotes(questionId: number): ShortNote[];
 }
 
 /**
@@ -36,7 +36,7 @@ export function createQuizService(repo: Repository): QuizService {
     return question;
   }
 
-  function getShortNotes(questionId: number): ShortNote[] {
+  function listShortNotes(questionId: number): ShortNote[] {
     requireQuestion(questionId);
     return repo.getShortNotes(questionId);
   }
@@ -86,10 +86,10 @@ export function createQuizService(repo: Repository): QuizService {
       return explanation;
     },
 
-    getShortNotes,
+    listShortNotes,
 
-    getShortNote(questionId) {
-      const notes = getShortNotes(questionId);
+    getShortNotes(questionId) {
+      const notes = listShortNotes(questionId);
       if (notes.length === 0) throw new NotFoundError(`Question ${questionId} has no short notes`);
       return notes;
     },

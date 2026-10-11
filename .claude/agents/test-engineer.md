@@ -15,7 +15,7 @@ Rules:
 - Integration: SDK `Client` + `InMemoryTransport.createLinkedPair()` for the protocol; HTTP against a server on port `0`: 401 without a token, `/health`, stateless behavior.
 - Parser and converter tests live in `tests/skills/raw-data-to-json/` (small synthetic fixtures marked as test data, never invented-looking real questions). Server tests (`tests/unit`, `tests/helpers/seed-json.ts`) build `SeedData` from JSON fixtures and never read `_shortNotes*.md` or import from `.claude/`; the guard `tests/unit/no-markdown-in-server.test.ts` enforces this.
 - Import (`import.ts`): cover idempotency (second run inserts nothing), growth (only new rows added), changed source (reported, not overwritten), dry run (nothing written), rollback on error, skipped questions with reasons.
-- Mandatory invariant: a question from `get_random_question` and the resources do not contain `is_correct`; `check_answer` distinguishes correct from incorrect answers.
+- Mandatory invariant: a question from `get_question` and the resources do not contain `is_correct`; `check_answer` distinguishes correct from incorrect answers.
 - Tests are independent and deterministic: no dependence on order, a real DB or the network; stub randomness or assert a property rather than a value.
 - Test behavior, not implementation. Never weaken or delete existing assertions to make a test pass.
 - If a test fails because of a bug in the code, do not silently fix the code: describe the bug in your report.

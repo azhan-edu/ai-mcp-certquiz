@@ -29,25 +29,25 @@ Draft. Features are ordered by dependencies. Each feature is small and verifiabl
 | F2.2 | **Resource: question** (template by question id, e.g. `quiz://questions/{id}`) | **Done.** Returns only the question `id`, its `text` and its `options` (option `id` and `label`, ordered by `position`). No topic, no `is_correct`, no `explanation`. An unknown id gives an error. Covers the same ground as F4.7, see the note below |
 | F2.3 | **Resource: short notes of a question** (template by question id, e.g. `quiz://questions/{id}/short-notes`) | **Done.** Returns all short notes of the question (title and text, ordered by note id); a question without notes returns an empty list; an unknown question id gives an error. Notes may hint at the answer; this is accepted: the goal is learning, not control, so the resource is readable at any time |
 
-Stage 2 needs only the minimal server code: the repository and service functions for a topic, a question with options and a question's notes (a subset of F1.4 and F3.1), plus `registerResources`. `createServer()` (F4.1) is not required: tests build an `McpServer` directly and connect over `InMemoryTransport`. The rest of F1.4, F3.1 and F4.1 comes later. URI names are proposals. F2.2 overlaps with F4.7 (`quiz://questions` and `quiz://questions/{id}`); decide which one stays when implementing. F2.1 needs no schema change: it returns the columns `topics` has today. If `topics` gets new columns later, the resource returns them too; a schema change must then update the seed, the repository and the tests together.
+Stage 2 needs only the minimal server code: the repository and service functions for a topic, a question with options and a question's notes (a subset of F1.4 and F3.1), plus `registerResources`. `createServer()` (F4.1) is not required: tests build an `McpServer` directly and connect over `InMemoryTransport`. F3.1 and F4.1 were done later; the rest of F1.4 (the question list) is still open. URI names are proposals. F2.2 overlaps with F4.7 (`quiz://questions` and `quiz://questions/{id}`); decide which one stays when implementing. F2.1 needs no schema change: it returns the columns `topics` has today. If `topics` gets new columns later, the resource returns them too; a schema change must then update the seed, the repository and the tests together.
 
 ## Stage 3. Logic
 | # | Feature | Result / done criteria |
 |---|---|---|
-| F3.1 | **Quiz service** (`services/quiz.ts`): `getRandomQuestion`, `checkAnswer`, `getExplanation`, `getShortNote` | **Done.** `createQuizService` has `getTopic`, `listTopics`, `getQuestion`, `getRandomQuestion(topicId?)`, `checkAnswer(questionId, optionId)` → `{ correct, correctOptionId }` (the only method that reveals the correct option), `getExplanation`, `getShortNotes` (resource view: `[]` for a question without notes) and `getShortNote` (tool view: all notes of the question; no notes throws `NotFoundError`). Unknown topic, question or option, an empty topic and an empty DB throw `NotFoundError`; a question without a correct option throws `AppError`. The public question DTO physically has no `is_correct` field. Covered by tests. |
+| F3.1 | **Quiz service** (`services/quiz.ts`): `getRandomQuestion`, `checkAnswer`, `getExplanation`, `listShortNotes`, `getShortNotes` | **Done.** `createQuizService` has `getTopic`, `listTopics`, `getQuestion`, `getRandomQuestion(topicId?)`, `checkAnswer(questionId, optionId)` → `{ correct, correctOptionId }` (the only method that reveals the correct option), `getExplanation`, `listShortNotes` (resource view: `[]` for a question without notes) and `getShortNotes` (tool view: all notes of the question; no notes throws `NotFoundError`). Unknown topic, question or option, an empty topic and an empty DB throw `NotFoundError`; a question without a correct option throws `AppError`. The public question DTO physically has no `is_correct` field. Covered by tests. |
 
 ## Stage 4. MCP interface
 | # | Feature | Result / done criteria |
 |---|---|---|
-| F4.1 | **Server skeleton** (`server.ts`: `createServer()`, `registerTools`) | A client over `InMemoryTransport` connects and sees the tool list |
-| F4.2 | **Tool `get_random_question`** (optional `topicId`) | Returns the text and options without the correct answer |
-| F4.3 | **Tool `check_answer`** (`questionId`, `optionId`) | Returns `correct` and `correctOptionId`; the service's `NotFoundError` (unknown question or option) gives `isError: true`. The tool adds only the schema and the mapping |
-| F4.4 | **Tool `get_explanation`** | Explanation of "why it is correct, why it is not" |
-| F4.5 | **Tool `get_short_note`** | A short note on how to understand the question; the service's `NotFoundError` ("has no short notes") gives `isError: true`. The tool adds only the schema and the mapping (see F3.1) |
-| F4.6 | **Tool `list_topics`** | Topic list. No `db/` or `services/` work: `listTopics` is ready (see F1.4, F3.1) |
+| F4.1 | **Server skeleton** (`server.ts`: `createServer()`, `registerTools`) | **Done.** `createServer(service)` registers the tools and the resources; a client over `InMemoryTransport` connects and sees the tool list. Covered by `tests/integration/server.test.ts` |
+| F4.2 | **Tool `get_question`** (optional `questionId`, optional `topicId`) | **Done.** With `questionId` returns that question; without it returns a random one, optionally narrowed by `topicId`. Returns `id`, `text` and `options` (`id`, `label`) without the correct answer; `questionId` and `topicId` together, an unknown question or topic, or an empty DB gives `isError: true`; `readOnlyHint` is set. Covered by `tests/integration/tools-get-question.test.ts` |
+| F4.3 | **Tool `check_answer`** (`questionId`, `optionId`) | **Done.** Returns `correct` and `correctOptionId`; the service's `NotFoundError` (unknown question or option) gives `isError: true`. The tool adds only the schema and the mapping. Covered by `tests/integration/tools-check-answer.test.ts` |
+| F4.4 | **Tool `get_explanation`** | **Done.** Explanation of "why it is correct, why it is not"; reveals the answer by design, on explicit request. Covered by `tests/integration/tools-get-explanation.test.ts` |
+| F4.5 | **Tool `get_short_notes`** | **Done.** The list of short notes of the question (title and text, ordered by note id), how to understand the question; the service's `NotFoundError` ("has no short notes") gives `isError: true`. The tool adds only the schema and the mapping (see F3.1). Covered by `tests/integration/tools-get-short-notes.test.ts` |
+| F4.6 | **Tool `list_topics`** | **Done.** Topic list. No `db/` or `services/` work: `listTopics` is ready (see F1.4, F3.1). Covered by `tests/integration/tools-list-topics.test.ts` |
 | F4.7 | **Resources**: `quiz://questions` and the template `quiz://questions/{id}`, both without correct answers. Note: overlaps with F2.2; decide which one stays when implementing | Readable by a client; a non-existent id returns an error |
 
-F4.2–F4.6 are independent of each other and can be done in any order after F4.1.
+F4.2–F4.6 were independent of each other (any order after F4.1); all are done.
 
 ## Stage 5. Remote access
 | # | Feature | Result / done criteria |
@@ -68,4 +68,4 @@ F4.2–F4.6 are independent of each other and can be done in any order after F4.
 CLAUDE.md with code rules, CI, deployment, OAuth 2.1, rate limiting, additional resources and prompts, user answer statistics (will require state storage).
 
 ## Recommended order
-First build a **vertical slice**: F0.1 → F1.1–F1.4 → F3.1 → F4.1 → F4.2 → F4.3. This gives a minimally working quiz (question and check) inside the process, without the network. Then add the remaining tools, then HTTP and authentication.
+First build a **vertical slice**: F0.1 → F1.1–F1.4 → F3.1 → F4.1 → F4.2 → F4.3. This gives a minimally working quiz (question and check) inside the process, without the network. Tools F4.4–F4.6 are done as well; the next step is HTTP and authentication.
